@@ -1,0 +1,12 @@
+[package]
+name = "MinimalGo"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+
+[features]
+riscv32 = []
+riscv32_test = []
