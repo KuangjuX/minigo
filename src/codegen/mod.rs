@@ -8,6 +8,6 @@ pub use program::Program;
 
 pub trait CodeGen {
     fn emit_text(&mut self);
-    // fn emit_data(&self);
+    fn emit_data(&mut self);
     fn codegen(&mut self);
 }
