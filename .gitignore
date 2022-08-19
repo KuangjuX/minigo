@@ -2,3 +2,5 @@
 main.S 
 main
 test.ll
+test.o
+test.S

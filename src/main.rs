@@ -22,5 +22,5 @@ fn main() {
     // let out_asm = File::create("main.S").unwrap();
     // let mut program = codegen::Program::new(out_asm);
     program.debug();
-    // program.codegen();
+    program.codegen();
 }

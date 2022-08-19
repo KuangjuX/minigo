@@ -8,6 +8,16 @@ pub enum Ty {
     Unknown
 }
 
+impl Ty {
+    pub fn size(&self) -> usize {
+        match &self {
+            Ty::I32 => { 4 },
+            Ty::I64 => { 8 },
+            _ => { 0 }
+        }
+    }
+}
+
 /// Variable
 #[derive(Debug)]
 pub struct Var {
@@ -15,8 +25,10 @@ pub struct Var {
     pub(crate) ty: Ty,
     /// global variable
     pub(crate) global: bool,
+    /// static global
+    pub(crate) is_static: bool,
     /// init
-    pub(crate) init: Option<usize>,
+    pub(crate) initiazed: bool,
     /// variable size
     pub(crate) size: usize,
     /// variable align
@@ -30,7 +42,8 @@ impl Var {
         Self {
             ty: Ty::Unknown,
             global: false,
-            init: None,
+            is_static: false,
+            initiazed: false,
             size: 0,
             align: 0,
             name: String::new()
@@ -38,13 +51,14 @@ impl Var {
     }
 
     pub fn new(
-        ty: Ty, global: bool, init: Option<usize>, 
+        ty: Ty, global: bool, initiazed: bool, 
         size: usize, align: usize, name: String
     ) -> Self {
         Self {
             ty,
             global,
-            init,
+            is_static: false,
+            initiazed,
             size,
             align, 
             name

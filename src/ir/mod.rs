@@ -72,7 +72,7 @@ impl IR {
                 let ty = &cap[1];
                 let value = &cap[2];
                 let (ty, size) = self.parse_variable_type(ty, value);
-                let var = Var::new(ty, true, None, size, align, String::from_str(name).unwrap());
+                let var = Var::new(ty, true, false, size, align, String::from_str(name).unwrap());
                 return var
             },
 
@@ -82,7 +82,7 @@ impl IR {
                 let ty = &cap[1];
                 let value = &cap[2];
                 let (ty, size) = self.parse_variable_type(ty, value);
-                let var = Var::new(ty, true, None, size, align, String::from_str(name).unwrap());
+                let var = Var::new(ty, true, true, size, align, String::from_str(name).unwrap());
                 return var
             },
 

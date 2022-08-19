@@ -1,5 +1,10 @@
 TARGET		= riscv64
+
+CC			= $(TARGET)-unknown-elf-gcc
+LD 			= $(TARGET)-unknown-elf-ld
 AS 			= $(TARGET)-unknown-elf-as
+OBJCOPY		= $(TARGET)-unknown-elf-objcopy 
+OBJDUMP		= $(TARGET)-unknown-elf-objdump
 CLANG		= clang
 
 TEST		= testcases
@@ -33,8 +38,10 @@ exe:
 gen_ir:
 	@$(CLANG) -S -emit-llvm $(TEST)/test.c
 
+gen_asm: $(TEST)/test.c
+	@$(CC) -S -Og $(TEST)/test.c -o test.S
+
 clean:
 	@cargo clean
-	@rm main.S
-	@rm main 
 	@rm test.ll
+	@rm test.S
