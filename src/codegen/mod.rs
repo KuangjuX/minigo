@@ -1,10 +1,8 @@
 use std::io::Result;
-
-mod arch;
-use arch::riscv32;
-
 mod program;
+mod var;
 pub use program::Program;
+pub use var::{ Var, Ty };
 
 pub trait CodeGen {
     fn emit_text(&mut self);

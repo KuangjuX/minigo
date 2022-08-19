@@ -6,7 +6,10 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+nom = { version = "7.1.1" }
+regex = { version = "1.6.0" }
 
 [features]
+default = []
 riscv32 = []
-riscv32_test = []
+riscv64 = []
