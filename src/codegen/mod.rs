@@ -1,7 +1,7 @@
 use std::io::Result;
 mod program;
 mod var;
-pub use program::Program;
+pub use program::{ Program, Function };
 pub use var::{ Var, Ty };
 
 pub trait CodeGen {

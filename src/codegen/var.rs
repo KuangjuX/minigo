@@ -8,6 +8,7 @@ pub enum Ty {
     Unknown
 }
 
+/// Variable
 #[derive(Debug)]
 pub struct Var {
     /// variable type

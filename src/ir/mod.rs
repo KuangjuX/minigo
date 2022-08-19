@@ -2,7 +2,7 @@ use std::fs::File;
 use std::io::{ BufRead, BufReader };
 use std::str::FromStr;
 use regex::Regex;
-use crate::codegen::Program;
+use crate::codegen::{Program, Function};
 use crate::codegen::{ Ty, Var };
 
 pub struct IR {
@@ -16,6 +16,7 @@ impl IR {
         }
     }
 
+    /// parse value
     fn parse_value(&self, value: &str) -> Option<usize> {
         match usize::from_str_radix(value, 10) {
             Ok(value) => {
@@ -28,6 +29,7 @@ impl IR {
         }
     }
 
+    /// parse variable type && size
     fn parse_variable_type(&self, ty: &str, value: &str) -> (Ty, usize) {
         match ty {
             "i32" => {
@@ -54,6 +56,7 @@ impl IR {
         }
     }
 
+    /// parse global variable
     fn parse_variable(&self, line: String) -> Var {
         let re = Regex::new(r"@(.*?) = (.*?), align ([0-9]*)").unwrap();
         let cap = re.captures(&line).unwrap();
@@ -92,6 +95,10 @@ impl IR {
             }
         }
     }
+
+    // fn parse_function(&self) -> Function {
+
+    // }
 
     pub fn parse(&self) -> Program {
         let asm = File::create("main.S").unwrap();
