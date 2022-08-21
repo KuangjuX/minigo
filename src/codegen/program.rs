@@ -2,6 +2,7 @@ use std::collections::VecDeque;
 use std::fs::File;
 use std::io::Write;
 use std::cell::RefCell;
+use llvm_ir::Module;
 
 use crate::arch::Instruction;
 
@@ -17,6 +18,7 @@ pub struct Function {
 
 pub struct Program {
     pub(crate) asm_file: RefCell<File>,
+    // pub(crate) module: Module,
     pub(crate) funcs: VecDeque<Function>,
     pub(crate) vars: VecDeque<Var>
 }
@@ -24,8 +26,11 @@ pub struct Program {
 impl Program {
     pub fn new(asm: File) -> Self {
         Self{
+            /// Output assemble file
             asm_file: RefCell::new(asm),
+            /// All function in ir
             funcs: VecDeque::new(),
+            /// All global variable in ir
             vars: VecDeque::new()
         }
     }

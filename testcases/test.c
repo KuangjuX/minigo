@@ -4,6 +4,7 @@ static int c = 20;
 int d = 20;
 long x = 100;
 
+const int e = 10;
 
 int foo(int a, int b){
     return a + b;

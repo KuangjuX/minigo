@@ -5,9 +5,12 @@ LD 			= $(TARGET)-unknown-elf-ld
 AS 			= $(TARGET)-unknown-elf-as
 OBJCOPY		= $(TARGET)-unknown-elf-objcopy 
 OBJDUMP		= $(TARGET)-unknown-elf-objdump
-CLANG		= clang
+CLANG		= clang-10
+LLVM_AS		= llvm-as-10
 
 TEST		= testcases
+
+TEST_LL		= test.ll
 
 ifeq ($(TARGET),riscv64)
 	FEATURES += --features riscv64
@@ -37,6 +40,9 @@ exe:
 
 gen_ir:
 	@$(CLANG) -S -emit-llvm $(TEST)/test.c
+
+gen_bc:
+	@(LLVM_AS) test.ll -o test.bc
 
 gen_asm: $(TEST)/test.c
 	@$(CC) -S -Og $(TEST)/test.c -o test.S

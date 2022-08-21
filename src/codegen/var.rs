@@ -1,3 +1,5 @@
+
+
 /// variable type
 #[derive(Debug)]
 pub enum Ty {
@@ -35,6 +37,8 @@ pub struct Var {
     pub(crate) align: usize,
     /// variable name
     pub(crate) name: String,
+    /// is constant
+    pub(crate) is_constant: bool
 }
 
 impl Var {
@@ -46,22 +50,9 @@ impl Var {
             initiazed: false,
             size: 0,
             align: 0,
-            name: String::new()
+            name: String::new(),
+            is_constant: false
         }
     }
 
-    pub fn new(
-        ty: Ty, global: bool, initiazed: bool, 
-        size: usize, align: usize, name: String
-    ) -> Self {
-        Self {
-            ty,
-            global,
-            is_static: false,
-            initiazed,
-            size,
-            align, 
-            name
-        }
-    }
 }

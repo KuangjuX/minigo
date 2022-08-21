@@ -1,18 +1,25 @@
 use std::fs::File;
 use std::io::{ BufRead, BufReader };
 use std::str::FromStr;
+use llvm_ir::module::{Linkage, GlobalVariable};
+use llvm_ir::types::TypeRef;
+use llvm_ir::name::Name;
 use regex::Regex;
-use crate::codegen::{Program, Function};
+use crate::codegen::Program;
 use crate::codegen::{ Ty, Var };
+use llvm_ir::{Module, Type};
 
 pub struct IR {
-    pub(crate) ir_file: File
+    pub(crate) module: Module,
 }
 
 impl IR {
-    pub fn new(file: File) -> Self {
+    pub fn new<S>(bc_file: S) -> Self 
+    where S: Into<String> 
+    {
+        let module = Module::from_bc_path(bc_file.into()).unwrap();
         Self {
-            ir_file: file
+            module
         }
     }
 
@@ -30,70 +37,78 @@ impl IR {
     }
 
     /// parse variable type && size
-    fn parse_variable_type(&self, ty: &str, value: &str) -> (Ty, usize) {
+    fn parse_variable_type(&self, var: &GlobalVariable) -> (Ty, usize) {
+        let ty = &*var.ty;
         match ty {
-            "i32" => {
-                if let Some(size) = self.parse_value(value) {
-                    return (Ty::I32, size)
-                }else{
-                    
-                    return (Ty::I32, 0)
-                }
-            },
+            Type::PointerType{ pointee_type, addr_space } => {
+                let mut pointee_ty = &**pointee_type;
+                match pointee_ty {
+                    Type::IntegerType{ bits } => {
+                        let size = bits / 8;
+                        match size  {
+                            4 => {
+                                (Ty::I32, 4)
+                            },
 
-            "i64" => {
-                if let Some(size) = self.parse_value(value) {
-                    // let var = Var::new(Ty::I64, true, None, size, align, String::from_str(name).unwrap());
-                    return (Ty::I64, size)
-                }else{
-                    return (Ty::I64, 0)
-                }
-            },
+                            8 => {
+                                (Ty::I64, 8)
+                            },
 
-            _ => {
-                return (Ty::Unknown, 0)
+                            _ => {
+                                (Ty::Unknown, *bits as usize)
+                            }
+                        }
+                    },
+
+                    _ => { (Ty::Unknown, 0) }
+                }
             }
+
+            _ => { (Ty::Unknown, 0) }
         }
     }
 
     /// parse global variable
-    fn parse_variable(&self, line: String) -> Var {
-        let re = Regex::new(r"@(.*?) = (.*?), align ([0-9]*)").unwrap();
-        let cap = re.captures(&line).unwrap();
-        let name = &cap[1];
-        let info = &cap[2];
-        let align = usize::from_str_radix(&cap[3], 10).unwrap();
-                        
-        // println!("name: {}, info: {}, align: {}", name, info, align);
-        match info.chars().nth(0)  {
-            Some('c') => {
-                let re = Regex::new(r"common global (.*) (.*)").unwrap();
-                let cap = re.captures(info).unwrap();
-                let ty = &cap[1];
-                let value = &cap[2];
-                let (ty, size) = self.parse_variable_type(ty, value);
-                let var = Var::new(ty, true, false, size, align, String::from_str(name).unwrap());
-                return var
+    fn parse_variable(&self, var: &GlobalVariable) -> Var {
+        let mut new_var = Var::uninit();
+        new_var.global = true;
+        // check link option
+        match var.linkage {
+            Linkage::Internal => {
+                new_var.is_static = true;
             },
 
-            Some('g') => {
-                let re = Regex::new(r"global (.*) (.*)").unwrap();
-                let cap = re.captures(info).unwrap();
-                let ty = &cap[1];
-                let value = &cap[2];
-                let (ty, size) = self.parse_variable_type(ty, value);
-                let var = Var::new(ty, true, true, size, align, String::from_str(name).unwrap());
-                return var
+            Linkage::External => {
+                new_var.is_static = false;
             },
 
-            Some(_) => {
-                return Var::uninit()
+            _ => {}
+        }
+        // check init
+        match &var.initializer {
+            Some(constref) => {
+                new_var.initiazed = true;
             },
 
             None => {
-                return Var::uninit()
+                new_var.initiazed = false;
             }
         }
+
+        new_var.is_constant = var.is_constant;
+        let (ty, size) = self.parse_variable_type(var);
+        new_var.ty = ty;
+        new_var.size = size;
+        new_var.align = var.alignment as usize;
+        match &var.name  {
+            Name::Name(name) => {
+                let name = format!("{}", *name);
+                new_var.name = name;
+            },
+
+            Name::Number(num) => {}
+        }
+        new_var
     }
 
     // fn parse_function(&self) -> Function {
@@ -103,30 +118,10 @@ impl IR {
     pub fn parse(&self) -> Program {
         let asm = File::create("main.S").unwrap();
         let mut program = Program::new(asm);
-        let mut reader = BufReader::new(&self.ir_file);
-        loop {
-            let mut line = String::new();
-            if let Ok(len) = reader.read_line(&mut line) {
-                if len == 0 {
-                    break;
-                }
-                match line.chars().nth(0) {
-                    // global variables
-                    Some('@') => {
-                        let var = self.parse_variable(line);
-                        // println!("var: {:?}", var);
-                        program.vars.push_back(var);
-                    },
-
-                    Some(_) => {
-
-                    }
-
-                    None => {
-
-                    }
-                }
-            }
+        // parse global variable
+        for var in self.module.global_vars.iter() {
+            let mut new_var = self.parse_variable(var);
+            program.vars.push_back(new_var);
         }
         program
     }
