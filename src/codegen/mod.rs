@@ -1,4 +1,3 @@
-use std::io::Result;
 mod program;
 mod var;
 pub use program::{ Program, Function };

@@ -38,7 +38,9 @@ pub struct Var {
     /// variable name
     pub(crate) name: String,
     /// is constant
-    pub(crate) is_constant: bool
+    pub(crate) is_constant: bool,
+    // Thread Local
+    pub(crate) is_tls: bool
 }
 
 impl Var {
@@ -51,7 +53,8 @@ impl Var {
             size: 0,
             align: 0,
             name: String::new(),
-            is_constant: false
+            is_constant: false,
+            is_tls: false
         }
     }
 

@@ -2,7 +2,6 @@ use std::collections::VecDeque;
 use std::fs::File;
 use std::io::Write;
 use std::cell::RefCell;
-use llvm_ir::Module;
 
 use crate::arch::Instruction;
 
@@ -78,7 +77,11 @@ impl CodeGen for Program {
 
             // .data or .tdata
             if var.initiazed {
-                self.write_asm("    .data");
+                if var.is_tls {
+                    self.write_asm("    .section .tdata,\"awT\",@progbits");
+                }else{
+                    self.write_asm("    .data");
+                }
                 let ty = format!("    .type {}, object", var.name);
                 self.write_asm(ty);
                 let size = format!("    .size {} {}", var.name, var.size);
@@ -89,7 +92,11 @@ impl CodeGen for Program {
                 self.write_asm(name);
             }else {
                 // .bss or .tbss
-                self.write_asm("    .bss");
+                if var.is_tls {
+                    self.write_asm("    .section .tbss,\"awT\",@nobit");
+                }else{
+                    self.write_asm("    .bss");
+                }
                 let align = format!("    .align {}", var.align);
                 self.write_asm(align);
                 let name = format!("{}:", var.name);

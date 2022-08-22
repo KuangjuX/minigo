@@ -42,7 +42,7 @@ gen_ir:
 	@$(CLANG) -S -emit-llvm $(TEST)/test.c
 
 gen_bc:
-	@(LLVM_AS) test.ll -o test.bc
+	@$(LLVM_AS) test.ll -o test.bc
 
 gen_asm: $(TEST)/test.c
 	@$(CC) -S -Og $(TEST)/test.c -o test.S

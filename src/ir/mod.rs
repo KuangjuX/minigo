@@ -1,10 +1,6 @@
 use std::fs::File;
-use std::io::{ BufRead, BufReader };
-use std::str::FromStr;
 use llvm_ir::module::{Linkage, GlobalVariable};
-use llvm_ir::types::TypeRef;
 use llvm_ir::name::Name;
-use regex::Regex;
 use crate::codegen::Program;
 use crate::codegen::{ Ty, Var };
 use llvm_ir::{Module, Type};
@@ -18,6 +14,9 @@ impl IR {
     where S: Into<String> 
     {
         let module = Module::from_bc_path(bc_file.into()).unwrap();
+        for var in module.global_vars.iter() {
+            println!("[Debug] {:?}", var);
+        }
         Self {
             module
         }
