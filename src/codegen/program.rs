@@ -3,17 +3,11 @@ use std::fs::File;
 use std::io::Write;
 use std::cell::RefCell;
 
-use crate::arch::Instruction;
-
+// use crate::arch::Instruction;
+use super::{Function, VarValue, Ty};
 use super::{CodeGen, Var};
 
-pub struct Function {
-    pub(crate) name: String,
-    pub(crate) args: usize,
-    pub(crate) is_static: bool,
-    pub(crate) insts: VecDeque<Instruction>,
-    pub(crate) stack_size: usize
-}
+
 
 pub struct Program {
     pub(crate) asm_file: RefCell<File>,
@@ -82,9 +76,36 @@ impl CodeGen for Program {
                 }else{
                     self.write_asm("    .data");
                 }
-                let ty = format!("    .type {}, object", var.name);
+                if let Some(init) = &var.init_data {
+                    match init {
+                        VarValue::Int(val) => {
+                            match &var.ty {
+                                &super::Ty::I32 => {
+                                    let write_val = format!("    .word  {}", *val as i32);
+                                    self.write_asm(write_val);
+                                },
+
+                                &super::Ty::I64 => {
+                                    let write_val = format!("    .dword  {}", *val as i64);
+                                    self.write_asm(write_val);
+                                },
+
+                                _ => {}
+                            }
+
+                        }
+
+                        VarValue::Pointer(name) => {
+                            if var.ty == Ty::Pointer {
+                                let write_val = format!("    .dword  {}", name);
+                                self.write_asm(write_val);
+                            }
+                        }
+                    }
+                }
+                let ty = format!("    .type {}, @object", var.name);
                 self.write_asm(ty);
-                let size = format!("    .size {} {}", var.name, var.size);
+                let size = format!("    .size {}, {}", var.name, var.size);
                 self.write_asm(size);
                 let align = format!("    .align {}", var.align);
                 self.write_asm(align);

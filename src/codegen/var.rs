@@ -1,13 +1,20 @@
 
 
 /// variable type
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum Ty {
     I32,
     I64,
     Struct,
     Array,
+    Pointer,
     Unknown
+}
+
+#[derive(Debug)]
+pub enum VarValue {
+    Int(usize),
+    Pointer(String)
 }
 
 impl Ty {
@@ -29,8 +36,12 @@ pub struct Var {
     pub(crate) global: bool,
     /// static global
     pub(crate) is_static: bool,
+    /// is local, used in function
+    pub(crate) is_local: bool,
     /// init
     pub(crate) initiazed: bool,
+    /// init data
+    pub(crate) init_data: Option<VarValue>,
     /// variable size
     pub(crate) size: usize,
     /// variable align
@@ -49,7 +60,9 @@ impl Var {
             ty: Ty::Unknown,
             global: false,
             is_static: false,
+            is_local: false,
             initiazed: false,
+            init_data: None,
             size: 0,
             align: 0,
             name: String::new(),

@@ -1,7 +1,9 @@
 mod program;
 mod var;
-pub use program::{ Program, Function };
-pub use var::{ Var, Ty };
+mod func;
+pub use program::Program;
+pub use func::Function;
+pub use var::{ Var, Ty, VarValue };
 
 pub trait CodeGen {
     fn emit_text(&mut self);
