@@ -5,7 +5,8 @@ use super::Ty;
 
 
 pub struct FuncParameter {
-    pub ty: Ty
+    pub ty: Ty,
+    pub size: usize
 }
 
 /// program function define

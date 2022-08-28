@@ -7,6 +7,7 @@ use bit_field::BitField;
 // use crate::arch::Instruction;
 use super::{Function, VarValue, Ty};
 use super::{CodeGen, Var};
+use crate::utils::align_to;
 
 
 
@@ -14,11 +15,12 @@ pub struct Program {
     pub(crate) asm_file: RefCell<File>,
     // pub(crate) module: Module,
     pub(crate) funcs: VecDeque<Function>,
-    pub(crate) vars: VecDeque<Var>
+    pub(crate) vars: VecDeque<Var>,
 }
 
 impl Program {
     pub fn new(asm: File) -> Self {
+        
         Self{
             /// Output assemble file
             asm_file: RefCell::new(asm),
@@ -41,8 +43,9 @@ impl Program {
         asm_file.write(asm.as_bytes()).unwrap();
     }
 
-    fn assign_var_offset(&self) {
-        
+    fn assign_var_offset(&mut self) {
+        for func in self.funcs.iter_mut() {
+        }
     }
 
 }
@@ -77,16 +80,34 @@ impl CodeGen for Program {
             self.write_asm("    # Store ra register");
             // sp = sp - 16
             self.write_asm("    addi sp, sp, -16");
-            self.write_asm("    sw ra, 8(sp)");
+            self.write_asm("    sd ra, 8(sp)");
 
             // store fp register
             self.write_asm("    # Store fp register");
-            self.write_asm("    sw fp, 0(sp)");
+            self.write_asm("    sd fp, 0(sp)");
 
             // sp = sp - stack_size
             self.write_asm("    # Store params");
-            let info = format!("    addi sp, sp, -{}", func.stack_size);
-            self.write_asm(info);
+            let asm = format!("    addi sp, sp, -{}", func.stack_size);
+            self.write_asm(asm);
+
+            // Store all params
+            let mut offset = 0;
+            for (index ,param) in func.params.iter().enumerate() {
+                match param.ty {
+                    Ty::I32 => {
+                        let asm = format!("    sw a{}, ({})sp", index, offset);
+                        self.write_asm(asm);
+                        offset += 4;
+                    },
+                    Ty::I64 => {
+                        let asm = format!("    sd a{}, ({})sp", index, offset);
+                        self.write_asm(asm);
+                        offset += 8;
+                    },
+                    _ => {}
+                }
+            }
         }
         
     }
@@ -177,6 +198,7 @@ impl CodeGen for Program {
                 let name = format!("{}:", var.name);
                 self.write_asm(name);
                 let zero = format!("    .zero {}", var.ty.size());
+                self.write_asm(zero);
             }
 
         }

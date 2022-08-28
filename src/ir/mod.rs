@@ -198,14 +198,18 @@ impl IR {
                         4 => {
                             function.stack_size += 4;
                             function.params.push(FuncParameter{
-                                ty: Ty::I32
-                            })
+                                ty: Ty::I32,
+                                size: 4,
+                            });
+                            function.stack_size += 4;
                         },
                         8 => {
                             function.stack_size += 8;
                             function.params.push(FuncParameter{
-                                ty: Ty::I64
-                            })
+                                ty: Ty::I64,
+                                size: 8,
+                            });
+                            function.stack_size += 8;
                         },
                         _ => {}
                     }
