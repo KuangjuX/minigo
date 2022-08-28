@@ -11,9 +11,13 @@ pub enum Ty {
     Unknown
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum VarValue {
     Int(usize),
+    Array{
+        bits: usize, 
+        elements: Vec<usize>
+    },
     Pointer(String)
 }
 

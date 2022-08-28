@@ -24,7 +24,6 @@ impl IR {
     }
 
     fn parse_init_value(&self, var: &GlobalVariable) -> Option<VarValue> {
-        // println!("\n\ninitval: {:?}", &var.initializer);
         if let Some(constref) = &var.initializer {
             let initval = &**constref;
             match initval {
@@ -33,13 +32,36 @@ impl IR {
                 },
 
                 Constant::GetElementPtr(element_ptr) => {
-                    println!("\n\n[Debug] ptr var: {:?}", var);
                     let addr = &*element_ptr.address;
                     if let Constant::GlobalReference{name, ty} = addr {
                         let name = format!("{}", *name);
                         return Some(VarValue::Pointer(name))
                     }
                     None
+                },
+
+                Constant::Array{element_type, elements} => {
+                    let element_type = &**element_type;
+                    let mut array: Vec<usize> = vec![];
+                    match element_type {
+                        Type::IntegerType { bits } => {
+                            for element in elements {
+                                let element = &**element;
+                                match element {
+                                    &Constant::Int{bits, value} => {
+                                        array.push(value as usize);
+                                    },
+                                    _ => {}
+                                }
+                                
+                            }
+                            return Some(VarValue::Array{
+                                bits: *bits as usize, 
+                                elements: array
+                            })
+                        },
+                        _ => { None }
+                    }
                 }
 
                 _ => {
@@ -53,7 +75,7 @@ impl IR {
 
         /// parse variable type && size
         fn parse_variable_type(&self, var: &GlobalVariable, new_var: &mut Var) {
-            println!("[Debug] var: {:?}", var);
+            println!("[Debug] var: {:?}\n\n", var);
             let ty = &*var.ty;
             match ty {
                 Type::PointerType{ pointee_type, addr_space } => {
@@ -65,7 +87,6 @@ impl IR {
                                 4 => {
                                     let init_val = self.parse_init_value(var);
                                     if let Some(val) = init_val {
-                                        // return (Ty::I32, 4, Some(val))
                                         new_var.ty = Ty::I32;
                                         new_var.size = 4;
                                         new_var.init_data = Some(val);
@@ -82,14 +103,6 @@ impl IR {
                                                 new_var.size = 8;
                                                 new_var.init_data = Some(val);
                                             },
-    
-                                            // VarValue::Pointer(_) => {
-                                            //     // return (Ty::Pointer, 8, Some(val))
-                                            //     new_var.ty = Ty::Pointer;
-                                            //     new_var.size = 8;
-                                            //     new_var.init_data = Some(val);
-                                            // },
-    
                                             _ => {}
                                         }
                                     }
@@ -99,6 +112,22 @@ impl IR {
                                 _ => {}
                             }
                         },
+
+                        Type::ArrayType{element_type, num_elements} => {
+                            let element_type = &**element_type;
+                            match element_type {
+                                &Type::IntegerType{ bits} => {
+                                    if let Some(val) = self.parse_init_value(var) {
+                                        new_var.ty = Ty::Array;
+                                        if let VarValue::Array{ bits, elements} = &val {
+                                            new_var.size = (bits/8) * elements.len();
+                                        }
+                                        new_var.init_data = Some(val.clone());
+                                    }
+                                },
+                                _ => {}
+                            }
+                        }
 
                         Type::PointerType{pointee_type, addr_space} => {
                             let init_val = self.parse_init_value(var);

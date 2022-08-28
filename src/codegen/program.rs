@@ -1,7 +1,9 @@
 use std::collections::VecDeque;
+use std::fmt::format;
 use std::fs::File;
 use std::io::Write;
 use std::cell::RefCell;
+use bit_field::BitField;
 
 // use crate::arch::Instruction;
 use super::{Function, VarValue, Ty};
@@ -99,6 +101,27 @@ impl CodeGen for Program {
                             if var.ty == Ty::Pointer {
                                 let write_val = format!("    .dword  {}", name);
                                 self.write_asm(write_val);
+                            }
+                        },
+
+                        VarValue::Array{bits, elements} => {
+                            let mut pos = 0;
+                            let mut x = 0;
+                            let mut i = 0;
+                            let size = bits / 8;
+                            while i < var.size {
+                                if x == size {
+                                    pos += 1;
+                                    x = 0;
+                                }
+                                let element = elements[pos];
+                                let low = x * 8;
+                                let high = (x + 1) * 8;
+                                let byte = element.get_bits(low..high);
+                                let info = format!("    .byte {}", byte);
+                                self.write_asm(info);
+                                x += 1;
+                                i += 1;
                             }
                         }
                     }

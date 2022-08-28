@@ -9,6 +9,7 @@ edition = "2021"
 nom = { version = "7.1.1" }
 regex = { version = "1.6.0" }
 llvm-ir = { version = "0.8.1", features = ["llvm-10"] }
+bit_field = { version = "0.10.1" }
 
 [features]
 default = []
