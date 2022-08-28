@@ -2,7 +2,7 @@ mod program;
 mod var;
 mod func;
 pub use program::Program;
-pub use func::Function;
+pub use func::{ Function, FuncParameter };
 pub use var::{ Var, Ty, VarValue };
 
 pub trait CodeGen {

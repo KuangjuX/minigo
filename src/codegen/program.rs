@@ -1,5 +1,4 @@
 use std::collections::VecDeque;
-use std::fmt::format;
 use std::fs::File;
 use std::io::Write;
 use std::cell::RefCell;
@@ -42,9 +41,14 @@ impl Program {
         asm_file.write(asm.as_bytes()).unwrap();
     }
 
+    fn assign_var_offset(&self) {
+        
+    }
+
 }
 
 impl CodeGen for Program {
+    /// generation text section
     fn emit_text(&mut self) {        
         // generate section
         for func in self.funcs.iter() {
@@ -56,11 +60,38 @@ impl CodeGen for Program {
             self.write_asm("    .text");
             let name = format!("{}:\n", func.name);
             self.write_asm(name);
-        }
 
-        // push all arguments into stack
+            // push all arguments into stack
+            /*
+            * Stack:
+            * ----------------------- // sp
+            *        ra             
+            * ---------------------- // ra = sp - 8
+            *        fp
+            * ---------------------- // fp = sp - 16
+            *       vars           
+            * ---------------------- // sp = sp - 16 - stacksize
+            *      exprs
+            * ----------------------
+            */
+            self.write_asm("    # Store ra register");
+            // sp = sp - 16
+            self.write_asm("    addi sp, sp, -16");
+            self.write_asm("    sw ra, 8(sp)");
+
+            // store fp register
+            self.write_asm("    # Store fp register");
+            self.write_asm("    sw fp, 0(sp)");
+
+            // sp = sp - stack_size
+            self.write_asm("    # Store params");
+            let info = format!("    addi sp, sp, -{}", func.stack_size);
+            self.write_asm(info);
+        }
+        
     }
 
+    /// generate data section
     fn emit_data(&mut self) {
         for var in self.vars.iter() {
             if var.is_static {

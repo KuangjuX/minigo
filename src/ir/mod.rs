@@ -2,9 +2,9 @@ use std::fs::File;
 use llvm_ir::module::{Linkage, GlobalVariable};
 use llvm_ir::name::Name;
 use llvm_ir::constant::Constant;
-use crate::codegen::Program;
+use crate::codegen::{Program, Function, FuncParameter};
 use crate::codegen::{ Ty, Var, VarValue };
-use llvm_ir::{Module, Type};
+use llvm_ir::{Module, Type, self};
 
 pub struct IR {
     pub(crate) module: Module,
@@ -73,75 +73,75 @@ impl IR {
         }
     }
 
-        /// parse variable type && size
-        fn parse_variable_type(&self, var: &GlobalVariable, new_var: &mut Var) {
-            println!("[Debug] var: {:?}\n\n", var);
-            let ty = &*var.ty;
-            match ty {
-                Type::PointerType{ pointee_type, addr_space } => {
-                    let pointee_ty = &**pointee_type;
-                    match pointee_ty {
-                        Type::IntegerType{ bits } => {
-                            let size = bits / 8;
-                            match size  {
-                                4 => {
-                                    let init_val = self.parse_init_value(var);
-                                    if let Some(val) = init_val {
-                                        new_var.ty = Ty::I32;
-                                        new_var.size = 4;
-                                        new_var.init_data = Some(val);
-                                    }
-                                },
-    
-                                8 => {
-                                    let init_val = self.parse_init_value(var);
-                                    if let Some(val) = init_val {
-                                        match val {
-                                            VarValue::Int(_) => {
-                                                // return (Ty::I64, 8, Some(val))
-                                                new_var.ty = Ty::I64;
-                                                new_var.size = 8;
-                                                new_var.init_data = Some(val);
-                                            },
-                                            _ => {}
-                                        }
-                                    }
-    
-                                },
-    
-                                _ => {}
-                            }
-                        },
+    /// parse variable type && size
+    fn parse_variable_type(&self, var: &GlobalVariable, new_var: &mut Var) {
+        println!("[Debug] var: {:?}\n\n", var);
+        let ty = &*var.ty;
+        match ty {
+            Type::PointerType{ pointee_type, addr_space } => {
+                let pointee_ty = &**pointee_type;
+                match pointee_ty {
+                    Type::IntegerType{ bits } => {
+                        let size = bits / 8;
+                        match size  {
+                            4 => {
+                                let init_val = self.parse_init_value(var);
+                                if let Some(val) = init_val {
+                                    new_var.ty = Ty::I32;
+                                    new_var.size = 4;
+                                    new_var.init_data = Some(val);
+                                }
+                            },
 
-                        Type::ArrayType{element_type, num_elements} => {
-                            let element_type = &**element_type;
-                            match element_type {
-                                &Type::IntegerType{ bits} => {
-                                    if let Some(val) = self.parse_init_value(var) {
-                                        new_var.ty = Ty::Array;
-                                        if let VarValue::Array{ bits, elements} = &val {
-                                            new_var.size = (bits/8) * elements.len();
-                                        }
-                                        new_var.init_data = Some(val.clone());
+                            8 => {
+                                let init_val = self.parse_init_value(var);
+                                if let Some(val) = init_val {
+                                    match val {
+                                        VarValue::Int(_) => {
+                                            // return (Ty::I64, 8, Some(val))
+                                            new_var.ty = Ty::I64;
+                                            new_var.size = 8;
+                                            new_var.init_data = Some(val);
+                                        },
+                                        _ => {}
                                     }
-                                },
-                                _ => {}
-                            }
+                                }
+
+                            },
+
+                            _ => {}
                         }
+                    },
 
-                        Type::PointerType{pointee_type, addr_space} => {
-                            let init_val = self.parse_init_value(var);
-                            new_var.ty = Ty::Pointer;
-                            new_var.size = 8;
-                            new_var.init_data = init_val;
-                        }   
-                        _ => {}
+                    Type::ArrayType{element_type, num_elements} => {
+                        let element_type = &**element_type;
+                        match element_type {
+                            &Type::IntegerType{ bits} => {
+                                if let Some(val) = self.parse_init_value(var) {
+                                    new_var.ty = Ty::Array;
+                                    if let VarValue::Array{ bits, elements} = &val {
+                                        new_var.size = (bits/8) * elements.len();
+                                    }
+                                    new_var.init_data = Some(val.clone());
+                                }
+                            },
+                            _ => {}
+                        }
                     }
+
+                    Type::PointerType{pointee_type, addr_space} => {
+                        let init_val = self.parse_init_value(var);
+                        new_var.ty = Ty::Pointer;
+                        new_var.size = 8;
+                        new_var.init_data = init_val;
+                    }   
+                    _ => {}
                 }
-    
-                _ => {}
             }
+
+            _ => {}
         }
+    }
 
     /// parse global variable
     fn parse_variable(&self, var: &GlobalVariable) -> Var {
@@ -184,9 +184,37 @@ impl IR {
         new_var
     }
 
-    // fn parse_function(&self) -> Function {
-
-    // }
+    /// parse IR function
+    fn parse_function(&self, func: &llvm_ir::Function) -> Function {
+        println!("[Debug] func: {:?}\n\n", func);
+        let mut function = Function::uninit();
+        function.name = func.name.clone();
+        for param in func.parameters.iter() {
+            let ty = &*param.ty.clone();
+            match ty {
+                &Type::IntegerType{bits} => {
+                    let size = bits / 8;
+                    match size {
+                        4 => {
+                            function.stack_size += 4;
+                            function.params.push(FuncParameter{
+                                ty: Ty::I32
+                            })
+                        },
+                        8 => {
+                            function.stack_size += 8;
+                            function.params.push(FuncParameter{
+                                ty: Ty::I64
+                            })
+                        },
+                        _ => {}
+                    }
+                },
+                _ => {}
+            }
+        }
+        function
+    }
 
     pub fn parse(&self) -> Program {
         let asm = File::create("main.S").unwrap();
@@ -195,6 +223,10 @@ impl IR {
         for var in self.module.global_vars.iter() {
             let new_var = self.parse_variable(var);
             program.vars.push_back(new_var);
+        }
+        for function in self.module.functions.iter() {
+            let func = self.parse_function(function);
+            program.funcs.push_back(func);
         }
         program
     }
