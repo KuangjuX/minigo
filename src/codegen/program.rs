@@ -61,7 +61,7 @@ impl CodeGen for Program {
                 self.write_asm("    .globl");
             }
             self.write_asm("    .text");
-            let name = format!("{}:\n", func.name);
+            let name = format!("{}:", func.name);
             self.write_asm(name);
 
             // push all arguments into stack
@@ -86,6 +86,10 @@ impl CodeGen for Program {
             self.write_asm("    # Store fp register");
             self.write_asm("    sd fp, 0(sp)");
 
+            // write fp to sp
+            self.write_asm("    # write sp to fp");
+            self.write_asm("    mv fp, sp");
+
             // sp = sp - stack_size
             self.write_asm("    # Store params");
             let asm = format!("    addi sp, sp, -{}", func.stack_size);
@@ -108,6 +112,16 @@ impl CodeGen for Program {
                     _ => {}
                 }
             }
+
+            // return 
+            self.write_asm("# function return");
+            let asm = format!(".L.return.{}", func.name);
+            self.write_asm(asm);
+            self.write_asm("    mv sp, fp");
+            self.write_asm("    ld fp, 0(sp)");
+            self.write_asm("    ld ra, 8(sp)");
+            self.write_asm("    addi sp, sp, 16");
+            self.write_asm("    ret\n\n");
         }
         
     }
