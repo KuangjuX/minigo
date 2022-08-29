@@ -55,7 +55,7 @@ gen_asm: $(TEST)/test.c
 	@$(CC) -S $(CFLAGS) $(TEST)/test.c -o test.S
 
 gen_exe: test.S
-	@$(CC) $(TESTPROG) $(CFLAGS) -o $(TESTELF)
+	@$(AS) -c test.S -o $(TESTELF)
 
 qemu_test: test 
 	$(QEMU) $(TESTELF)
