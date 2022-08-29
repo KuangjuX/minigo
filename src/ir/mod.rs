@@ -34,7 +34,10 @@ impl IR {
                 Constant::GetElementPtr(element_ptr) => {
                     let addr = &*element_ptr.address;
                     if let Constant::GlobalReference{name, ty} = addr {
-                        let name = format!("{}", *name);
+                        let mut name = format!("{}", *name);
+                        if name.chars().nth(0) == Some('%') {
+                            name.remove(0);
+                        }
                         return Some(VarValue::Pointer(name))
                     }
                     None
@@ -75,7 +78,7 @@ impl IR {
 
     /// parse variable type && size
     fn parse_variable_type(&self, var: &GlobalVariable, new_var: &mut Var) {
-        println!("[Debug] var: {:?}\n\n", var);
+        // println!("[Debug] var: {:?}\n\n", var);
         let ty = &*var.ty;
         match ty {
             Type::PointerType{ pointee_type, addr_space } => {

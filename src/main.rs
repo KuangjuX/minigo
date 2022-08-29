@@ -1,5 +1,6 @@
 mod codegen;
 mod utils;
+mod log;
 use codegen::CodeGen;
 
 mod ir;

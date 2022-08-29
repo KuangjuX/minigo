@@ -56,9 +56,11 @@ impl CodeGen for Program {
         // generate section
         for func in self.funcs.iter() {
             if func.is_static {
-                self.write_asm("    .local");
+                let asm = format!("    .local {}", func.name);
+                self.write_asm(asm);
             }else{
-                self.write_asm("    .globl");
+                let asm = format!("    .globl {}", func.name);
+                self.write_asm(asm);
             }
             self.write_asm("    .text");
             let name = format!("{}:", func.name);
@@ -100,12 +102,12 @@ impl CodeGen for Program {
             for (index ,param) in func.params.iter().enumerate() {
                 match param.ty {
                     Ty::I32 => {
-                        let asm = format!("    sw a{}, ({})sp", index, offset);
+                        let asm = format!("    sw a{}, {}(sp)", index, offset);
                         self.write_asm(asm);
                         offset += 4;
                     },
                     Ty::I64 => {
-                        let asm = format!("    sd a{}, ({})sp", index, offset);
+                        let asm = format!("    sd a{}, {}(sp)", index, offset);
                         self.write_asm(asm);
                         offset += 8;
                     },
@@ -115,8 +117,8 @@ impl CodeGen for Program {
 
             // return 
             self.write_asm("# function return");
-            let asm = format!(".L.return.{}", func.name);
-            self.write_asm(asm);
+            // let asm = format!(".L.return.{}", func.name);
+            // self.write_asm(asm);
             self.write_asm("    mv sp, fp");
             self.write_asm("    ld fp, 0(sp)");
             self.write_asm("    ld ra, 8(sp)");
