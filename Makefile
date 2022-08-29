@@ -11,12 +11,12 @@ LLVM_AS		= llvm-as-10
 QEMU		= qemu-riscv64
 
 TEST		= testcases
-TESTPROG	= $(TEST)/hello_world.c 
-TESTELF		= $(TEST)/hello_world
+TESTPROG	= $(TEST)/test.c
+TESTELF		= $(TEST)/test
 
 TEST_LL		= test.ll
 
-CFLAGS      = -O3
+CFLAGS      = -Og
 
 ifeq ($(TARGET),riscv64)
 	FEATURES += --features riscv64
@@ -52,7 +52,7 @@ gen_bc:
 	@$(LLVM_AS) test.ll -o test.bc
 
 gen_asm: $(TEST)/test.c
-	@$(CC) -S -Og $(TEST)/test.c -o test.S
+	@$(CC) -S $(CFLAGS) $(TEST)/test.c -o test.S
 
 gen_exe: test.S
 	@$(CC) $(TESTPROG) $(CFLAGS) -o $(TESTELF)
