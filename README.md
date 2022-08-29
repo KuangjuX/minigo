@@ -21,3 +21,17 @@ make install
 qemu-riscv64 --version
 ```
 - RISC -V ToolChains
+
+## RoadMap
+### Global Variable
+- [x] I32
+- [x] I64
+- [x] Pointer
+- [ ] Array
+- [ ] Structure
+- [ ] Enum
+
+### Function 
+- [x] Parameters into Stack
+- [ ] Local Varaiables into Stack
+- [ ] Exprs generation
