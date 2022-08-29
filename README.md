@@ -9,3 +9,15 @@ In this project, compiler backend will receive llvm-10 file and translate them i
 ```
 Compiler Frontend ---> Compiler Middlend ---> LLVM IR ---> Compiler Backend --> AS --> ELF
 ```
+
+## Environment
+- Rust
+- QEMU 
+```
+git clone https://mirrors.tuna.tsinghua.edu.cn/git/qemu.git
+cd qemu && ./configure --prefix=/usr/local --target-list=riscv64-linux-user
+make
+make install
+qemu-riscv64 --version
+```
+- RISC -V ToolChains
