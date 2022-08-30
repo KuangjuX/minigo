@@ -117,8 +117,6 @@ impl CodeGen for Program {
 
             // return 
             self.write_asm("# function return");
-            // let asm = format!(".L.return.{}", func.name);
-            // self.write_asm(asm);
             self.write_asm("    mv sp, fp");
             self.write_asm("    ld fp, 0(sp)");
             self.write_asm("    ld ra, 8(sp)");
