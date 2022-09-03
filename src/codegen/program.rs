@@ -4,7 +4,7 @@ use std::io::Write as Write2;
 use std::cell::RefCell;
 use std::fmt::{Write, self};
 use bit_field::BitField;
-use llvm_ir::{ Instruction, operand::Operand, constant::Constant };
+use llvm_ir::{ Instruction, operand::Operand, constant::Constant, terminator::Terminator };
 use super::ConstValue;
 
 use crate::utils::{parse_type, align_to, parse_operand};
@@ -129,7 +129,39 @@ impl Program {
                     _ => {}
                 }
             }
+            let termianl = &block.term;
+            match termianl {
+                Terminator::Ret(ret) => {
+                    // return 
+                    self.write_asm("# function return");
+                    self.write_asm("    mv sp, fp");
+                    self.write_asm("    ld fp, 0(sp)");
+                    self.write_asm("    ld ra, 8(sp)");
+                    self.write_asm("    addi sp, sp, 16");
+                    if let Some(op) = &ret.return_operand {
+                        if let Some(op) = parse_operand(op) {
+                            match op {
+                                Op::ConstValue(constval) => {
+                                    match constval {
+                                        ConstValue::Num(num) => {
+                                            let asm = format!("    li a0, {}", num);
+                                            self.write_asm(asm);
+                                        }
+                                    }
+                                }
+                                Op::LocalValue(name) => {
+                                    // let asm = format!("mv a0, {}", )
+                                }
+                            }
+                        }
+                    }
+                    self.write_asm("    ret\n\n");
+                }
+                _ => {}
+            }
         }
+
+        
     }
 
 }
@@ -197,14 +229,6 @@ impl CodeGen for Program {
 
             self.gen_expr(func);
 
-            // return 
-            self.write_asm("# function return");
-            self.write_asm("    mv sp, fp");
-            self.write_asm("    ld fp, 0(sp)");
-            self.write_asm("    ld ra, 8(sp)");
-            self.write_asm("    addi ra, ra, 1");
-            self.write_asm("    addi sp, sp, 16");
-            self.write_asm("    ret\n\n");
         }
         
     }
