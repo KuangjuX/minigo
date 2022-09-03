@@ -69,7 +69,7 @@ display_compile:
 	@$(CC) $(TESTPROG) $(CFLAGS) -v -o $(TESTELF)
 
 gen_exe: 
-	@$(CC) $(TESTPROG) $(CFLAGS) -o $(TESTELF)
+	@$(CC) $(TESTPROG) $(CFLAGS) -o test
 
 qemu_test: $(TESTELF) 
 	@$(QEMU) $(TESTELF)

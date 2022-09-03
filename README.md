@@ -23,18 +23,17 @@ qemu-riscv64 --version
 - RISC -V ToolChains
 
 ## RoadMap
-### Global Variable
-- [x] I32
-- [x] I64
-- [x] Pointer
+- [x] Return `main` function
+- [ ] Unary Experssions
+- [ ] Add, Sub, Mul, Div,Mod
+- [ ] Compare && Logical Experssions
+- [ ] Local Variables and Assignment
+- [ ] Conditional Expressions
+- [ ] Scope && Block Statements
+- [ ] Loop Statement
+- [ ] Functions
+- [x] Global Variables
 - [ ] Array
-- [ ] Structure
-- [ ] Enum
-
-### Function 
-- [x] Parameters into Stack
-- [ ] Local Varaiables into Stack
-- [ ] Exprs generation
 
 ## References:
 - [chibicc](https://github.com/rui314/chibicc)
