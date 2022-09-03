@@ -190,8 +190,7 @@ impl IR {
 
     /// parse IR function
     fn parse_function(&self, func: &llvm_ir::Function) -> Function {
-        // println!("[Debug] func: {:?}\n\n", func);
-        debug!("[Debug] func: {:?}\n\n", func);
+        debug!("func: {:?}\n\n", func);
         let mut function = Function::uninit();
         function.name = func.name.clone();
         for param in func.parameters.iter() {

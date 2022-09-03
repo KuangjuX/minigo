@@ -28,9 +28,6 @@ impl Log {
         }
     }
 
-    // pub fn write(&mut self, args: fmt::Arguments) {
-    //     self.write_fmt(args).unwrap();
-    // }
 
     pub fn debug<S>(&mut self, info: S) where S: Into<String> {
         let info = format!("\n[Debug] {}\n", info.into());
@@ -46,7 +43,28 @@ pub fn log_write(args: fmt::Arguments) {
 #[macro_export]
 macro_rules! debug {
     ($fmt: literal $(, $($arg: tt)+)?) => {
-        $crate::log::log_write(format_args!(concat!($fmt, "\n") $(, $($arg)+)?))
+        $crate::log::log_write(format_args!(concat!("[DEBUG] ", $fmt, "\n") $(, $($arg)+)?))
+    }
+}
+
+#[macro_export]
+macro_rules! info {
+    ($fmt: literal $(, $($arg: tt)+)?) => {
+        $crate::log::log_write(format_args!(concat!("[INFO] ", $fmt, "\n") $(, $($arg)+)?))
+    }
+}
+
+#[macro_export]
+macro_rules! warning {
+    ($fmt: literal $(, $($arg: tt)+)?) => {
+        $crate::log::log_write(format_args!(concat!("[WARNING] ", $fmt, "\n") $(, $($arg)+)?))
+    }
+}
+
+#[macro_export]
+macro_rules! error {
+    ($fmt: literal $(, $($arg: tt)+)?) => {
+        $crate::log::log_write(format_args!(concat!("[ERROR] ", $fmt, "\n") $(, $($arg)+)?))
     }
 }
 

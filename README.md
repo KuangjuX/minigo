@@ -35,3 +35,7 @@ qemu-riscv64 --version
 - [x] Parameters into Stack
 - [ ] Local Varaiables into Stack
 - [ ] Exprs generation
+
+## References:
+- [chibicc](https://github.com/rui314/chibicc)
+- [minidecaf](https://decaf-lang.github.io/minidecaf-tutorial/)
