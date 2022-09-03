@@ -18,6 +18,10 @@ TESTPROG	= $(TEST)/test.c
 TESTOUT     = $(TEST)/test.o
 TESTELF		= $(TEST)/test
 
+ASMS  		= $(wildcard $(TEST)/*.S)
+OBJS 		= $(wildcard $(TEST)/*.o)
+ELFS 		= $(TEST)/test $(TEST)hello_world
+
 TEST_LL		= test.ll
 
 
@@ -63,12 +67,13 @@ display_compile:
 gen_exe: 
 	@$(CC) $(TESTPROG) $(CFLAGS) -o $(TESTELF)
 
-qemu_test: test 
-	$(QEMU) $(TESTELF)
+qemu_test: $(TESTELF) 
+	@$(QEMU) $(TESTELF)
 
 clean:
-	@cargo clean
-	@rm test.ll
-	@rm test.S
+	@cargo clean 
+	@rm $(ASMS)
+	@rm $(OBJS)
+	@rm $(ELF)
 
 

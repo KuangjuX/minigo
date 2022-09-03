@@ -120,6 +120,7 @@ impl CodeGen for Program {
             self.write_asm("    mv sp, fp");
             self.write_asm("    ld fp, 0(sp)");
             self.write_asm("    ld ra, 8(sp)");
+            self.write_asm("    addi ra, ra, 1");
             self.write_asm("    addi sp, sp, 16");
             self.write_asm("    ret\n\n");
         }

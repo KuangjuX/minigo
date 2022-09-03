@@ -4,6 +4,7 @@ use llvm_ir::name::Name;
 use llvm_ir::constant::Constant;
 use crate::codegen::{Program, Function, FuncParameter};
 use crate::codegen::{ Ty, Var, VarValue };
+use crate::debug;
 use llvm_ir::{Module, Type, self};
 
 pub struct IR {
@@ -189,7 +190,8 @@ impl IR {
 
     /// parse IR function
     fn parse_function(&self, func: &llvm_ir::Function) -> Function {
-        println!("[Debug] func: {:?}\n\n", func);
+        // println!("[Debug] func: {:?}\n\n", func);
+        debug!("[Debug] func: {:?}\n\n", func);
         let mut function = Function::uninit();
         function.name = func.name.clone();
         for param in func.parameters.iter() {
@@ -223,8 +225,8 @@ impl IR {
         function
     }
 
-    pub fn parse(&self) -> Program {
-        let asm = File::create("main.S").unwrap();
+    pub fn parse(&self, asm: &str) -> Program {
+        let asm = File::create(asm).unwrap();
         let mut program = Program::new(asm);
         // parse global variable
         for var in self.module.global_vars.iter() {

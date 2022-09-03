@@ -1,12 +1,17 @@
+#[macro_use]
 mod codegen;
 mod utils;
 mod log;
 mod elf;
+
+
 use codegen::CodeGen;
 
 mod ir;
 use ir::IR;
-use elf::{assemble, run_linker};
+use elf::{assemble,  generate_elf};
+
+
 
 #[cfg(feature = "riscv32")]
 #[path = "arch/riscv32.rs"]
@@ -19,14 +24,14 @@ mod arch;
 
 fn main() {
     let ir = IR::new("test.bc");
-    let mut program = ir.parse();
+    let mut program = ir.parse("testcases/test.S");
     program.codegen();
     assemble(
         "testcases/test.S",
         "testcases/test.o"
     );
-    run_linker(
-        "testcases/test.S",
+    generate_elf(
+        "testcases/test.o", 
         "testcases/test"
     );
 }
