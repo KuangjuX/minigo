@@ -3,8 +3,7 @@
 /// variable type
 #[derive(Debug, PartialEq, Eq)]
 pub enum Ty {
-    I32,
-    I64,
+    Num,
     Struct,
     Array,
     Pointer,
@@ -24,8 +23,7 @@ pub enum VarValue {
 impl Ty {
     pub fn size(&self) -> usize {
         match &self {
-            Ty::I32 => { 4 },
-            Ty::I64 => { 8 },
+            Ty::Num => { 8 },
             _ => { 0 }
         }
     }

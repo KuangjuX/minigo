@@ -10,6 +10,7 @@ CFLAGS      = -Og
 
 CLANG		= clang-10
 LLVM_AS		= llvm-as-10
+LLC 		= llc-10
 QEMU		= qemu-riscv64
 
 TEST		= testcases
@@ -53,10 +54,13 @@ exe:
 	@$(QEMU) main
 
 gen_ir:
-	@$(CLANG) -S -emit-llvm $(TEST)/test.c
+	@$(CLANG) -S -emit-llvm --target=riscv64-unknown-linux-gnu $(TEST)/test.c
 
 gen_bc:
 	@$(LLVM_AS) test.ll -o test.bc
+
+llc:
+	@$(LLC) --march=riscv64 test.ll
 
 gen_asm: $(TEST)/test.c
 	@$(CC) -S $(CFLAGS) $(TEST)/test.c -o $(TESTASM)

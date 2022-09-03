@@ -1,3 +1,4 @@
+
 use std::fs::File;
 use llvm_ir::module::{Linkage, GlobalVariable};
 use llvm_ir::name::Name;
@@ -6,6 +7,11 @@ use crate::codegen::{Program, Function, FuncParameter};
 use crate::codegen::{ Ty, Var, VarValue };
 use crate::debug;
 use llvm_ir::{Module, Type, self};
+
+
+
+
+
 
 pub struct IR {
     pub(crate) module: Module,
@@ -16,11 +22,22 @@ impl IR {
     where S: Into<String> 
     {
         let module = Module::from_bc_path(bc_file.into()).unwrap();
-        // for var in module.global_vars.iter() {
-        //     println!("[Debug] {:?}", var);
-        // }
         Self {
             module
+        }
+    }
+
+    fn debug_function(&self, function: &llvm_ir::Function) {
+        debug!("name: {}", function.name);
+        debug!("parameters: {:?}", function.parameters);
+        debug!("return_type: {:?}", function.return_type);
+        debug!("basic_blocks: ");
+        for block in function.basic_blocks.iter() {
+            debug!("block name: {:?}", block.name);
+            for inst in block.instrs.iter() {
+                debug!("inst: {:?}", inst);
+            }
+            debug!("terminator: {:?}", block.term);
         }
     }
 
@@ -86,35 +103,18 @@ impl IR {
                 let pointee_ty = &**pointee_type;
                 match pointee_ty {
                     Type::IntegerType{ bits } => {
-                        let size = bits / 8;
-                        match size  {
-                            4 => {
-                                let init_val = self.parse_init_value(var);
-                                if let Some(val) = init_val {
-                                    new_var.ty = Ty::I32;
-                                    new_var.size = 4;
+                        let init_val = self.parse_init_value(var);
+                        if let Some(val) = init_val {
+                            match val {
+                                VarValue::Int(_) => {
+                                    new_var.ty = Ty::Num;
+                                    new_var.size = 8;
                                     new_var.init_data = Some(val);
-                                }
-                            },
-
-                            8 => {
-                                let init_val = self.parse_init_value(var);
-                                if let Some(val) = init_val {
-                                    match val {
-                                        VarValue::Int(_) => {
-                                            // return (Ty::I64, 8, Some(val))
-                                            new_var.ty = Ty::I64;
-                                            new_var.size = 8;
-                                            new_var.init_data = Some(val);
-                                        },
-                                        _ => {}
-                                    }
-                                }
-
-                            },
-
-                            _ => {}
+                                },
+                                _ => {}
+                            }
                         }
+                        
                     },
 
                     Type::ArrayType{element_type, num_elements} => {
@@ -188,54 +188,55 @@ impl IR {
         new_var
     }
 
+    // fn parse_locals(&self, func: &mut Function, inst: &llvm_ir::Instruction) {
+    //     match inst {
+    //         &llvm_ir::Instruction::Alloca(alloca) => {
+                
+    //         },
+
+    //         _ => {}
+    //     }
+    // }
+
     /// parse IR function
-    fn parse_function(&self, func: &llvm_ir::Function) -> Function {
-        debug!("func: {:?}\n\n", func);
-        let mut function = Function::uninit();
-        function.name = func.name.clone();
-        for param in func.parameters.iter() {
+    fn parse_function(&self, llvm_func: &llvm_ir::Function) -> Function {
+        self.debug_function(llvm_func);
+        let mut func = Function::uninit();
+        func.name = llvm_func.name.clone();
+        for param in llvm_func.parameters.iter() {
             let ty = &*param.ty.clone();
             match ty {
                 &Type::IntegerType{bits} => {
-                    let size = bits / 8;
-                    match size {
-                        4 => {
-                            function.stack_size += 4;
-                            function.params.push(FuncParameter{
-                                ty: Ty::I32,
-                                size: 4,
-                            });
-                            function.stack_size += 4;
-                        },
-                        8 => {
-                            function.stack_size += 8;
-                            function.params.push(FuncParameter{
-                                ty: Ty::I64,
+                    func.stack_size += 8;
+                            func.params.push(FuncParameter{
+                                ty: Ty::Num,
                                 size: 8,
                             });
-                            function.stack_size += 8;
-                        },
-                        _ => {}
-                    }
+                            func.stack_size += 8;
                 },
                 _ => {}
             }
         }
-        function
+        for block in llvm_func.basic_blocks.iter() {
+            func.blocks.push_back(block.clone());
+        }
+        func
     }
 
     pub fn parse(&self, asm: &str) -> Program {
         let asm = File::create(asm).unwrap();
-        let mut program = Program::new(asm);
+        let program = Program::new(asm);
         // parse global variable
+        let mut inner = program.inner.borrow_mut();
         for var in self.module.global_vars.iter() {
             let new_var = self.parse_variable(var);
-            program.vars.push_back(new_var);
+            inner.vars.push_back(new_var);
         }
         for function in self.module.functions.iter() {
             let func = self.parse_function(function);
-            program.funcs.push_back(func);
+            inner.funcs.push_back(func);
         }
+        drop(inner);
         program
     }
 }

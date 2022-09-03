@@ -10,6 +10,8 @@ dependencies = [
  "lazy_static",
  "llvm-ir",
  "log4rs",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

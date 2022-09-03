@@ -1,9 +1,9 @@
 use std::{fs::File, io::Write as Write2};
-use lazy_static::lazy_static;
 use std::fmt::{self, Write };
 use std::sync::Mutex;
+use lazy_static::lazy_static;
 
-// pub static mut LOG: Log = Log::new("log.txt");
+
 lazy_static!{
     pub static ref LOG: Mutex<Log> = Mutex::new(Log::new("log.txt"));
 }

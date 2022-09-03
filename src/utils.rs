@@ -1,4 +1,41 @@
+use llvm_ir::{ Type, TypeRef, Operand, constant::Constant };
+use crate::codegen::ConstValue;
+use crate::codegen::Ty;
+use crate::codegen::Op;
+
 pub fn align_to(size: usize, align: usize) -> usize {
-    let size = (size + align - 1) / align;
+    let size = (size + align - 1) / align * align;
     size
+}
+
+/// parse llvm ir type to minimalgo Ty && size
+pub fn parse_type(rawty: &TypeRef) -> Result<(Ty, usize), ()> {
+    let ty = &**rawty;
+    match ty {
+        &Type::IntegerType { bits } => {
+            return Ok((Ty::Num, 8))
+        }
+        _ => {}
+    }
+    Err(())
+}
+
+pub fn parse_operand(operand: &Operand) -> Option<Op> {
+    match operand {
+        Operand::ConstantOperand(constref) => {
+            let constval = &**constref;
+            match constval {
+                &Constant::Int{ bits, value} => {
+                    println!("[ConstVal] operand: {:?}", operand);
+                    return Some(Op::ConstValue(ConstValue::Num(value as usize)))
+                },
+                _ => {}
+            }
+        }
+        Operand::LocalOperand{name, ty} => {
+            return Some(Op::LocalValue(name.clone()))
+        }
+        _ => {}
+    }
+    None
 }

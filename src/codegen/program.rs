@@ -1,39 +1,54 @@
 use std::collections::VecDeque;
 use std::fs::File;
-use std::io::Write;
+use std::io::Write as Write2;
 use std::cell::RefCell;
+use std::fmt::{Write, self};
 use bit_field::BitField;
+use llvm_ir::{ Instruction, operand::Operand, constant::Constant };
+use super::ConstValue;
+
+use crate::utils::{parse_type, align_to, parse_operand};
+use crate::warning;
 
 // use crate::arch::Instruction;
-use super::{Function, VarValue, Ty};
+use super::{Function, VarValue, Ty, FuncLocal, LocalValue, Op};
 use super::{CodeGen, Var};
-use crate::utils::align_to;
+
+impl Write for Program {
+    fn write_str(&mut self, s: &str) -> fmt::Result {
+        self.write_asm(s);
+        Ok(())
+    }
+}
 
 
 
 pub struct Program {
     pub(crate) asm_file: RefCell<File>,
     // pub(crate) module: Module,
+    pub(crate) inner: RefCell<ProgInner>
+}
+
+pub struct ProgInner {
     pub(crate) funcs: VecDeque<Function>,
     pub(crate) vars: VecDeque<Var>,
+    pub(crate) stack_depth: usize
 }
 
 impl Program {
-    pub fn new(asm: File) -> Self {
-        
+    pub fn new(asm: File) -> Self { 
         Self{
             /// Output assemble file
             asm_file: RefCell::new(asm),
-            /// All function in ir
-            funcs: VecDeque::new(),
-            /// All global variable in ir
-            vars: VecDeque::new()
-        }
-    }
-
-    pub fn debug(&self) {
-        for var in self.vars.iter() {
-            println!("var: {:?}", var);
+            inner: RefCell::new(
+                ProgInner {
+                    /// All function in ir
+                    funcs: VecDeque::new(),
+                    /// All global variable in ir
+                    vars: VecDeque::new(),
+                    stack_depth: 0
+                }
+            )
         }
     }
 
@@ -43,8 +58,77 @@ impl Program {
         asm_file.write(asm.as_bytes()).unwrap();
     }
 
-    fn assign_var_offset(&mut self) {
-        for func in self.funcs.iter_mut() {
+
+    fn gen_expr(&self, func: &mut Function) {
+        for block in func.blocks.iter() {
+            for inst in block.instrs.iter() {
+                match inst {
+                    Instruction::Alloca(alloca) => {
+                        match &alloca.num_elements {
+                            Operand::ConstantOperand(constref) => {
+                                let constval = &**constref;
+                                match constval {
+                                    &Constant::Int{ bits, value} => {
+                                        let mut size = (bits as usize / 8) * value as usize;
+                                        size = align_to(size, alloca.alignment as usize);
+                                        func.stack_size += size;
+                                        let asm = format!("    addi sp, sp, -{}", size);
+                                        self.write_asm(asm);
+                                    },
+                                    _ => {}
+                                }
+                            }
+                            _ => {}
+                        }
+                        
+                        if let Ok((ty, size)) = parse_type(&alloca.allocated_type) {
+                            let reg = &alloca.dest;
+                            if func.locals.iter().position(|local| local.name == *reg).is_none() {
+                                func.locals.push(FuncLocal{
+                                    ty,
+                                    size,
+                                    name: reg.clone(),
+                                    val: LocalValue::Num(func.stack_size - 4)
+                                })
+                            } 
+                        }else{
+                            warning!("Fail to parse type: {:?}", &alloca.allocated_type);
+                        }
+                    },
+
+                    Instruction::Store(store) => {
+                        println!("[Debug] Store instruction: {:?}", store);
+                        let address = &store.address;
+                        let value = &store.value;
+                        if let (Some(address), Some(value)) = (parse_operand(address), parse_operand(value)) {
+                            match (address, value) {
+                                (Op::LocalValue(name), Op::ConstValue(constval)) => {
+                                    println!("Test");
+                                    for local in func.locals.iter() {
+                                        if local.name == name {
+                                            match local.val {
+                                                LocalValue::Num(addr) => {
+                                                    match constval {
+                                                        ConstValue::Num(val) => {
+                                                            let asm = format!("    addi zero, zero, {}", val);
+                                                            self.write_asm(asm);
+                                                            let asm = format!("    sd zero, -{}(fp)", addr);
+                                                            self.write_asm(asm)
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                _ =>{}
+                            }
+                        }
+                    }
+        
+                    _ => {}
+                }
+            }
         }
     }
 
@@ -54,7 +138,8 @@ impl CodeGen for Program {
     /// generation text section
     fn emit_text(&mut self) {        
         // generate section
-        for func in self.funcs.iter() {
+        let mut inner = self.inner.borrow_mut();
+        for func in inner.funcs.iter_mut() {
             if func.is_static {
                 let asm = format!("    .local {}", func.name);
                 self.write_asm(asm);
@@ -74,8 +159,8 @@ impl CodeGen for Program {
             * ---------------------- // ra = sp - 8
             *        fp
             * ---------------------- // fp = sp - 16
-            *       vars           
-            * ---------------------- // sp = sp - 16 - stacksize
+            *       params           
+            * ---------------------- // sp = sp - 16 - params size
             *      exprs
             * ----------------------
             */
@@ -101,12 +186,7 @@ impl CodeGen for Program {
             let mut offset = 0;
             for (index ,param) in func.params.iter().enumerate() {
                 match param.ty {
-                    Ty::I32 => {
-                        let asm = format!("    sw a{}, {}(sp)", index, offset);
-                        self.write_asm(asm);
-                        offset += 4;
-                    },
-                    Ty::I64 => {
+                    Ty::Num => {
                         let asm = format!("    sd a{}, {}(sp)", index, offset);
                         self.write_asm(asm);
                         offset += 8;
@@ -114,6 +194,8 @@ impl CodeGen for Program {
                     _ => {}
                 }
             }
+
+            self.gen_expr(func);
 
             // return 
             self.write_asm("# function return");
@@ -129,7 +211,8 @@ impl CodeGen for Program {
 
     /// generate data section
     fn emit_data(&mut self) {
-        for var in self.vars.iter() {
+        let inner = self.inner.borrow();
+        for var in inner.vars.iter() {
             if var.is_static {
                 let line = format!("    .local {}", var.name);
                 self.write_asm(line);
@@ -149,13 +232,8 @@ impl CodeGen for Program {
                     match init {
                         VarValue::Int(val) => {
                             match &var.ty {
-                                &super::Ty::I32 => {
-                                    let write_val = format!("    .word  {}", *val as i32);
-                                    self.write_asm(write_val);
-                                },
-
-                                &super::Ty::I64 => {
-                                    let write_val = format!("    .dword  {}", *val as i64);
+                                &super::Ty::Num => {
+                                    let write_val = format!("    .word  {}", *val as i64);
                                     self.write_asm(write_val);
                                 },
 

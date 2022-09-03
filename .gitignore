@@ -5,4 +5,5 @@ test.ll
 test.o
 test.S
 test.bc
+test.s
 log.txt

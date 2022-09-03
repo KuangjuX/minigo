@@ -8,6 +8,7 @@ pub struct Linker {
     output: String
 }
 
+/// translate assemble file to object file using riscv64-unknown-elf-as
 pub fn assemble(input: &str, output: &str) {
     if let Some(assembler) = find_assembler() {
         let mut cmd = Command::new(assembler)
@@ -22,6 +23,7 @@ pub fn assemble(input: &str, output: &str) {
     }
 }
 
+/// generate single elf file without linker
 pub fn generate_elf(input: &str, output: &str) {
     if let Some(gcc) = find_gcc() {
         let mut cmd = Command::new(gcc)
