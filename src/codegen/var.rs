@@ -1,4 +1,5 @@
 use llvm_ir::name::Name;
+use crate::ir::VirtualReg;
 
 #[derive(Debug, PartialEq)]
 pub enum VarType {

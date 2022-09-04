@@ -9,7 +9,9 @@ use llvm_ir::{Module, Type, self};
 
 
 
+mod virtual_reg;
 
+pub use virtual_reg::{VirtualReg, StackVar, RegVar};
 
 
 pub struct IR {

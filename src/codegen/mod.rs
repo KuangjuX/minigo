@@ -1,6 +1,7 @@
 mod program;
 mod var;
 mod func;
+mod reg;
 use llvm_ir::Name;
 pub use program::Program;
 pub use func::{ Function };

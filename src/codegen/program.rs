@@ -3,6 +3,7 @@ use std::fs::File;
 use std::io::Write as Write2;
 use std::cell::RefCell;
 use std::fmt::{Write, self};
+use std::collections::HashMap;
 use bit_field::BitField;
 use llvm_ir::{ Instruction, operand::Operand, constant::Constant, terminator::Terminator };
 use super::ConstValue;
