@@ -1,3 +1,13 @@
+use llvm_ir::name::Name;
+
+#[derive(Debug, PartialEq)]
+pub enum VarType {
+    Global,
+    Local,
+    Param,
+    Uninit
+}
+
 
 
 /// variable type
@@ -12,7 +22,7 @@ pub enum Ty {
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum VarValue {
-    Int(usize),
+    Num(usize),
     Array{
         bits: usize, 
         elements: Vec<usize>
@@ -32,6 +42,7 @@ impl Ty {
 /// Variable
 #[derive(Debug)]
 pub struct Var {
+    pub var_type: VarType,
     /// variable type
     pub(crate) ty: Ty,
     /// global variable
@@ -49,16 +60,19 @@ pub struct Var {
     /// variable align
     pub(crate) align: usize,
     /// variable name
-    pub(crate) name: String,
+    pub(crate) name: Option<Name>,
     /// is constant
     pub(crate) is_constant: bool,
     // Thread Local
-    pub(crate) is_tls: bool
+    pub(crate) is_tls: bool,
+
+    pub(crate) local_val: Option<VarValue>
 }
 
 impl Var {
     pub fn uninit() -> Self {
         Self {
+            var_type: VarType::Uninit,
             ty: Ty::Unknown,
             global: false,
             is_static: false,
@@ -67,9 +81,10 @@ impl Var {
             init_data: None,
             size: 0,
             align: 0,
-            name: String::new(),
+            name: None,
             is_constant: false,
-            is_tls: false
+            is_tls: false,
+            local_val: None
         }
     }
 

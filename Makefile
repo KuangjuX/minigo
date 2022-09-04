@@ -14,10 +14,12 @@ LLC 		= llc-10
 QEMU		= qemu-riscv64
 
 TEST		= testcases
-TESTASM     = $(TEST)/test.S
-TESTPROG	= $(TEST)/test.c
-TESTOUT     = $(TEST)/test.o
-TESTELF		= $(TEST)/test
+PROG 		= unary
+TESTELF		= $(TEST)/$(PROG)
+TESTASM     = $(TESTELF).S
+TESTPROG	= $(TESTELF).c
+TESTOUT     = $(TESTELF).o
+
 
 ASMS  		= $(wildcard $(TEST)/*.S)
 OBJS 		= $(wildcard $(TEST)/*.o)
@@ -54,13 +56,13 @@ exe:
 	@$(QEMU) main
 
 gen_ir:
-	@$(CLANG) -S -emit-llvm --target=riscv64-unknown-linux-gnu $(TEST)/test.c
+	@$(CLANG) -S -emit-llvm --target=riscv64-unknown-linux-gnu $(TESTPROG)
 
 gen_bc:
-	@$(LLVM_AS) test.ll -o test.bc
+	@$(LLVM_AS) $(PROG).ll -o $(PROG).bc
 
 llc:
-	@$(LLC) --march=riscv64 test.ll
+	@$(LLC) --march=riscv64 $(PROG).ll
 
 gen_asm: $(TEST)/test.c
 	@$(CC) -S $(CFLAGS) $(TEST)/test.c -o $(TESTASM)

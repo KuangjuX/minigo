@@ -1,9 +1,7 @@
 /target
-main.S 
-main
-test.ll
-test.o
-test.S
-test.bc
-test.s
+*.S
+*.o
+*.ll
+*.bc
+*.s
 log.txt

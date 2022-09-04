@@ -1,22 +1,8 @@
-use llvm_ir::{BasicBlock, name::Name};
+use llvm_ir::{BasicBlock};
 use std::collections::VecDeque;
 
-use super::Ty;
+use super::{Ty, Var};
 
-pub enum LocalValue {
-    Num(usize)
-}
-pub struct FuncParameter {
-    pub ty: Ty,
-    pub size: usize
-}
-
-pub struct FuncLocal {
-    pub ty: Ty,
-    pub size: usize,
-    pub name: Name,
-    pub val: LocalValue 
-}
 
 /// program function define
 pub struct Function {
@@ -29,9 +15,9 @@ pub struct Function {
     /// function stack size
     pub(crate) stack_size: usize,
     /// function params
-    pub(crate) params: Vec<FuncParameter>,
+    pub(crate) params: Vec<Var>,
     /// function local variables
-    pub(crate) locals: Vec<FuncLocal>,
+    pub(crate) locals: Vec<Var>,
     /// function return type
     pub(crate) ret_ty: Ty
 }

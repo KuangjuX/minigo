@@ -1,9 +1,8 @@
 
 use std::fs::File;
 use llvm_ir::module::{Linkage, GlobalVariable};
-use llvm_ir::name::Name;
 use llvm_ir::constant::Constant;
-use crate::codegen::{Program, Function, FuncParameter};
+use crate::codegen::{Program, Function, VarType};
 use crate::codegen::{ Ty, Var, VarValue };
 use crate::debug;
 use llvm_ir::{Module, Type, self};
@@ -46,7 +45,7 @@ impl IR {
             let initval = &**constref;
             match initval {
                 Constant::Int{bits, value} => {
-                    Some(VarValue::Int(*value as usize))
+                    Some(VarValue::Num(*value as usize))
                 },
 
                 Constant::GetElementPtr(element_ptr) => {
@@ -106,7 +105,7 @@ impl IR {
                         let init_val = self.parse_init_value(var);
                         if let Some(val) = init_val {
                             match val {
-                                VarValue::Int(_) => {
+                                VarValue::Num(_) => {
                                     new_var.ty = Ty::Num;
                                     new_var.size = 8;
                                     new_var.init_data = Some(val);
@@ -177,26 +176,10 @@ impl IR {
         new_var.is_constant = var.is_constant;
         self.parse_variable_type(var, &mut new_var);
         new_var.align = var.alignment as usize;
-        match &var.name  {
-            Name::Name(name) => {
-                let name = format!("{}", *name);
-                new_var.name = name;
-            },
-
-            Name::Number(num) => {}
-        }
+        new_var.name = Some(var.name.clone());
         new_var
     }
 
-    // fn parse_locals(&self, func: &mut Function, inst: &llvm_ir::Instruction) {
-    //     match inst {
-    //         &llvm_ir::Instruction::Alloca(alloca) => {
-                
-    //         },
-
-    //         _ => {}
-    //     }
-    // }
 
     /// parse IR function
     fn parse_function(&self, llvm_func: &llvm_ir::Function) -> Function {
@@ -207,12 +190,14 @@ impl IR {
             let ty = &*param.ty.clone();
             match ty {
                 &Type::IntegerType{bits} => {
+                    // add stack depth
                     func.stack_size += 8;
-                            func.params.push(FuncParameter{
-                                ty: Ty::Num,
-                                size: 8,
-                            });
-                            func.stack_size += 8;
+                    // initiaize param 
+                    let mut param = Var::uninit();
+                    param.var_type = VarType::Param;
+                    param.ty = Ty::Num;
+                    param.size = 8;
+                    func.params.push(param);
                 },
                 _ => {}
             }

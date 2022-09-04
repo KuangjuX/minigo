@@ -11,7 +11,7 @@ use crate::utils::{parse_type, align_to, parse_operand};
 use crate::warning;
 
 // use crate::arch::Instruction;
-use super::{Function, VarValue, Ty, FuncLocal, LocalValue, Op};
+use super::{Function, VarValue, Ty, Op};
 use super::{CodeGen, Var};
 
 impl Write for Program {
@@ -83,13 +83,13 @@ impl Program {
                         
                         if let Ok((ty, size)) = parse_type(&alloca.allocated_type) {
                             let reg = &alloca.dest;
-                            if func.locals.iter().position(|local| local.name == *reg).is_none() {
-                                func.locals.push(FuncLocal{
-                                    ty,
-                                    size,
-                                    name: reg.clone(),
-                                    val: LocalValue::Num(func.stack_size - 4)
-                                })
+                            if func.locals.iter().position(|local| local.name == Some(reg.clone())).is_none() {
+                                let mut local_var = Var::uninit();
+                                local_var.ty = ty;
+                                local_var.size = size;
+                                local_var.name = Some(reg.clone());
+                                local_var.local_val = Some(VarValue::Num(func.stack_size - 4));
+                                func.locals.push(local_var);
                             } 
                         }else{
                             warning!("Fail to parse type: {:?}", &alloca.allocated_type);
@@ -103,18 +103,15 @@ impl Program {
                         if let (Some(address), Some(value)) = (parse_operand(address), parse_operand(value)) {
                             match (address, value) {
                                 (Op::LocalValue(name), Op::ConstValue(constval)) => {
-                                    println!("Test");
                                     for local in func.locals.iter() {
-                                        if local.name == name {
-                                            match local.val {
-                                                LocalValue::Num(addr) => {
-                                                    match constval {
-                                                        ConstValue::Num(val) => {
-                                                            let asm = format!("    addi zero, zero, {}", val);
-                                                            self.write_asm(asm);
-                                                            let asm = format!("    sd zero, -{}(fp)", addr);
-                                                            self.write_asm(asm)
-                                                        }
+                                        if local.name == Some(name.clone()) {
+                                            if let Some(VarValue::Num(addr)) = local.local_val {
+                                                match constval {
+                                                    ConstValue::Num(val) => {
+                                                        let asm = format!("    addi zero, zero, {}", val);
+                                                        self.write_asm(asm);
+                                                        let asm = format!("    sd zero, -{}(fp)", addr);
+                                                        self.write_asm(asm)
                                                     }
                                                 }
                                             }
@@ -238,11 +235,15 @@ impl CodeGen for Program {
         let inner = self.inner.borrow();
         for var in inner.vars.iter() {
             if var.is_static {
-                let line = format!("    .local {}", var.name);
-                self.write_asm(line);
+                if let Some(name) = var.name.clone() {
+                    let asm = format!("    .local {}", name);
+                    self.write_asm(asm);
+                }
             }else{
-                let line = format!("    .globl {}", var.name);
-                self.write_asm(line);
+                if let Some(name) = var.name.clone() {
+                    let asm = format!("    .globl {}", name);
+                    self.write_asm(asm);
+                }
             }
 
             // .data or .tdata
@@ -254,7 +255,7 @@ impl CodeGen for Program {
                 }
                 if let Some(init) = &var.init_data {
                     match init {
-                        VarValue::Int(val) => {
+                        VarValue::Num(val) => {
                             match &var.ty {
                                 &super::Ty::Num => {
                                     let write_val = format!("    .word  {}", *val as i64);
@@ -295,14 +296,16 @@ impl CodeGen for Program {
                         }
                     }
                 }
-                let ty = format!("    .type {}, @object", var.name);
-                self.write_asm(ty);
-                let size = format!("    .size {}, {}", var.name, var.size);
-                self.write_asm(size);
-                let align = format!("    .align {}", var.align);
-                self.write_asm(align);
-                let name = format!("{}:", var.name);
-                self.write_asm(name);
+                if let Some(name) = var.name.clone() {
+                    let asm = format!("    .type {}, @object", name);
+                    self.write_asm(asm);
+                    let asm = format!("    .size {}, {}", name, var.size);
+                    self.write_asm(asm);
+                    let asm = format!("    .align {}", var.align);
+                    self.write_asm(asm);
+                    let asm = format!("{}:", name);
+                    self.write_asm(asm);
+                }
             }else {
                 // .bss or .tbss
                 if var.is_tls {
@@ -310,10 +313,12 @@ impl CodeGen for Program {
                 }else{
                     self.write_asm("    .bss");
                 }
-                let align = format!("    .align {}", var.align);
-                self.write_asm(align);
-                let name = format!("{}:", var.name);
-                self.write_asm(name);
+                let asm = format!("    .align {}", var.align);
+                self.write_asm(asm);
+                if let Some(name) = var.name.clone() {
+                    let asm = format!("{}:", name);
+                    self.write_asm(asm);
+                }
                 let zero = format!("    .zero {}", var.ty.size());
                 self.write_asm(zero);
             }

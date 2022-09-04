@@ -3,8 +3,8 @@ mod var;
 mod func;
 use llvm_ir::Name;
 pub use program::Program;
-pub use func::{ Function, FuncParameter, FuncLocal, LocalValue };
-pub use var::{ Var, Ty, VarValue };
+pub use func::{ Function };
+pub use var::{ Var, Ty, VarValue, VarType };
 
 pub enum ConstValue {
     Num(usize)
