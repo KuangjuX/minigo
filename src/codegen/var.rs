@@ -23,7 +23,8 @@ pub enum Ty {
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum VarValue {
-    Num(usize),
+    /// Num: (value, size)
+    Num(usize, usize),
     Array{
         bits: usize, 
         elements: Vec<usize>
@@ -67,7 +68,9 @@ pub struct Var {
     // Thread Local
     pub(crate) is_tls: bool,
 
-    pub(crate) local_val: Option<VarValue>
+    // pub(crate) local_val: Option<VarValue>
+    /// Function local variable, represented by virtual reg
+    pub(crate) local_val: Option<VirtualReg>
 }
 
 impl Var {

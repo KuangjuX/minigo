@@ -8,6 +8,7 @@ use bit_field::BitField;
 use llvm_ir::{ Instruction, operand::Operand, constant::Constant, terminator::Terminator };
 use super::ConstValue;
 
+use crate::ir::{StackVar, VirtualReg};
 use crate::utils::{parse_type, align_to, parse_operand};
 use crate::warning;
 
@@ -53,7 +54,7 @@ impl Program {
         }
     }
 
-    fn write_asm<S>(&self, asm: S) where S: Into<String> {
+    pub(crate) fn write_asm<S>(&self, asm: S) where S: Into<String> {
         let asm = format!("{}\n", asm.into());
         let mut asm_file = self.asm_file.borrow_mut();
         asm_file.write(asm.as_bytes()).unwrap();
@@ -65,6 +66,7 @@ impl Program {
             for inst in block.instrs.iter() {
                 match inst {
                     Instruction::Alloca(alloca) => {
+                        let mut offset = 0;
                         match &alloca.num_elements {
                             Operand::ConstantOperand(constref) => {
                                 let constval = &**constref;
@@ -72,6 +74,7 @@ impl Program {
                                     &Constant::Int{ bits, value} => {
                                         let mut size = (bits as usize / 8) * value as usize;
                                         size = align_to(size, alloca.alignment as usize);
+                                        offset = size;
                                         func.stack_size += size;
                                         let asm = format!("    addi sp, sp, -{}", size);
                                         self.write_asm(asm);
@@ -86,10 +89,15 @@ impl Program {
                             let reg = &alloca.dest;
                             if func.locals.iter().position(|local| local.name == Some(reg.clone())).is_none() {
                                 let mut local_var = Var::uninit();
+                                // Set local variable type
                                 local_var.ty = ty;
+                                // Set local variable size
                                 local_var.size = size;
+                                // Set local variable name
                                 local_var.name = Some(reg.clone());
-                                local_var.local_val = Some(VarValue::Num(func.stack_size - 4));
+                                // Set stack variable(address, size)
+                                let stack_var = StackVar::new(func.stack_size - offset, size);
+                                local_var.local_val = Some(VirtualReg::Stack(stack_var));
                                 func.locals.push(local_var);
                             } 
                         }else{
@@ -98,7 +106,6 @@ impl Program {
                     },
 
                     Instruction::Store(store) => {
-                        println!("[Debug] Store instruction: {:?}", store);
                         let address = &store.address;
                         let value = &store.value;
                         if let (Some(address), Some(value)) = (parse_operand(address), parse_operand(value)) {
@@ -106,15 +113,22 @@ impl Program {
                                 (Op::LocalValue(name), Op::ConstValue(constval)) => {
                                     for local in func.locals.iter() {
                                         if local.name == Some(name.clone()) {
-                                            if let Some(VarValue::Num(addr)) = local.local_val {
-                                                match constval {
-                                                    ConstValue::Num(val) => {
-                                                        let asm = format!("    addi zero, zero, {}", val);
-                                                        self.write_asm(asm);
-                                                        let asm = format!("    sd zero, -{}(fp)", addr);
-                                                        self.write_asm(asm)
+                                            match &local.local_val {
+                                                Some(VirtualReg::Stack(stack_var)) => {
+                                                    let addr = stack_var.addr;
+                                                    match constval {
+                                                        ConstValue::Num(val) => {
+                                                            let asm = format!("    addi zero, zero, {}", val);
+                                                            self.write_asm(asm);
+                                                            let asm = format!("    sd zero, -{}(fp)", addr);
+                                                            self.write_asm(asm)
+                                                        }
                                                     }
                                                 }
+                                                Some(VirtualReg::Reg(reg)) => {
+
+                                                },
+                                                None => {}
                                             }
                                         }
                                     }
@@ -256,14 +270,21 @@ impl CodeGen for Program {
                 }
                 if let Some(init) = &var.init_data {
                     match init {
-                        VarValue::Num(val) => {
-                            match &var.ty {
-                                &super::Ty::Num => {
-                                    let write_val = format!("    .word  {}", *val as i64);
-                                    self.write_asm(write_val);
-                                },
+                        &VarValue::Num(val, size) => {
+                            // match &var.ty {
+                            //     &super::Ty::Num => {
+                            //         let write_val = format!("    .word  {}", *val as i64);
+                            //         self.write_asm(write_val);
+                            //     },
 
-                                _ => {}
+                            //     _ => {}
+                            // }
+                            for i in 0..size {
+                                let low = i * 8;
+                                let high = (i + 1) * 8;
+                                let byte = val.get_bits(low..high);
+                                let info = format!("    .byte {}", byte);
+                                self.write_asm(info);
                             }
 
                         }

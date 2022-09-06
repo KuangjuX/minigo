@@ -47,7 +47,7 @@ impl IR {
             let initval = &**constref;
             match initval {
                 Constant::Int{bits, value} => {
-                    Some(VarValue::Num(*value as usize))
+                    Some(VarValue::Num(*value as usize, (*bits / 8) as usize))
                 },
 
                 Constant::GetElementPtr(element_ptr) => {
@@ -97,7 +97,6 @@ impl IR {
 
     /// parse variable type && size
     fn parse_variable_type(&self, var: &GlobalVariable, new_var: &mut Var) {
-        // println!("[Debug] var: {:?}\n\n", var);
         let ty = &*var.ty;
         match ty {
             Type::PointerType{ pointee_type, addr_space } => {
@@ -107,9 +106,9 @@ impl IR {
                         let init_val = self.parse_init_value(var);
                         if let Some(val) = init_val {
                             match val {
-                                VarValue::Num(_) => {
+                                VarValue::Num(_, size) => {
                                     new_var.ty = Ty::Num;
-                                    new_var.size = 8;
+                                    new_var.size = size;
                                     new_var.init_data = Some(val);
                                 },
                                 _ => {}
