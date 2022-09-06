@@ -8,7 +8,7 @@ pub use func::{ Function };
 pub use var::{ Var, Ty, VarValue, VarType };
 
 pub enum ConstValue {
-    Num(usize)
+    Num(usize, usize)
 }
 
 pub enum Op {

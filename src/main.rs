@@ -23,8 +23,8 @@ mod arch;
 mod arch;
 
 fn main() {
-    let ir = IR::new("test.bc");
-    let mut program = ir.parse("testcases/test.S");
+    let ir = IR::new("unary.bc");
+    let mut program = ir.parse("testcases/unary.S");
     program.codegen();
     assemble(
         "testcases/test.S",

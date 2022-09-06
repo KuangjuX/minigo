@@ -1,4 +1,4 @@
-use llvm_ir::{BasicBlock};
+use llvm_ir::{BasicBlock, name::Name};
 use std::collections::VecDeque;
 
 use super::{Ty, Var};
@@ -33,5 +33,17 @@ impl Function {
             locals: Vec::new(),
             ret_ty: Ty::Unknown
         }
+    }
+
+    /// check if local variable exist in function
+    pub fn local_var_exist(&self, name: Name) -> bool {
+        for local_var in self.locals.iter() {
+            if let Some(var_name) = local_var.name.clone() {
+                if var_name == name {
+                    return true
+                }
+            }
+        }
+        false
     }
 }

@@ -117,7 +117,7 @@ impl Program {
                                                 Some(VirtualReg::Stack(stack_var)) => {
                                                     let addr = stack_var.addr;
                                                     match constval {
-                                                        ConstValue::Num(val) => {
+                                                        ConstValue::Num(val, _) => {
                                                             let asm = format!("    addi zero, zero, {}", val);
                                                             self.write_asm(asm);
                                                             let asm = format!("    sd zero, -{}(fp)", addr);
@@ -135,6 +135,27 @@ impl Program {
                                 }
                                 _ =>{}
                             }
+                        }
+                    },
+
+                    Instruction::Xor(xor) => {
+                        let op0 = &xor.operand0;
+                        let op1 = &xor.operand1;
+                        let dest = &xor.dest;
+                        match (parse_operand(op0), parse_operand(op1)) {
+                            (Some(Op::ConstValue(op1)), Some(Op::ConstValue(op2))) => {
+
+                            },
+                            (Some(Op::LocalValue(op1)), Some(Op::ConstValue(op2))) => {
+
+                            },
+                            (Some(Op::ConstValue(op1)), Some(Op::LocalValue(op2))) => {
+
+                            },
+                            (Some(Op::LocalValue(op1)), Some(Op::LocalValue(op2))) => {
+                                
+                            }
+                            _ => {}
                         }
                     }
         
@@ -155,7 +176,7 @@ impl Program {
                             match op {
                                 Op::ConstValue(constval) => {
                                     match constval {
-                                        ConstValue::Num(num) => {
+                                        ConstValue::Num(num, _) => {
                                             let asm = format!("    li a0, {}", num);
                                             self.write_asm(asm);
                                         }
