@@ -3,10 +3,9 @@ use std::fs::File;
 use std::io::Write as Write2;
 use std::cell::RefCell;
 use std::fmt::{Write, self};
-use std::collections::HashMap;
 use bit_field::BitField;
 use llvm_ir::{ Instruction, operand::Operand, constant::Constant, terminator::Terminator };
-use super::ConstValue;
+use super::{ConstValue, PhysicalRegs};
 
 use crate::ir::{StackVar, VirtualReg};
 use crate::utils::{parse_type, align_to, parse_operand};
@@ -34,6 +33,7 @@ pub struct Program {
 pub struct ProgInner {
     pub(crate) funcs: VecDeque<Function>,
     pub(crate) vars: VecDeque<Var>,
+    pub(crate) regs: PhysicalRegs,
     pub(crate) stack_depth: usize
 }
 
@@ -48,6 +48,7 @@ impl Program {
                     funcs: VecDeque::new(),
                     /// All global variable in ir
                     vars: VecDeque::new(),
+                    regs: PhysicalRegs::init(),
                     stack_depth: 0
                 }
             )
@@ -139,24 +140,7 @@ impl Program {
                     },
 
                     Instruction::Xor(xor) => {
-                        let op0 = &xor.operand0;
-                        let op1 = &xor.operand1;
-                        let dest = &xor.dest;
-                        match (parse_operand(op0), parse_operand(op1)) {
-                            (Some(Op::ConstValue(op1)), Some(Op::ConstValue(op2))) => {
-
-                            },
-                            (Some(Op::LocalValue(op1)), Some(Op::ConstValue(op2))) => {
-
-                            },
-                            (Some(Op::ConstValue(op1)), Some(Op::LocalValue(op2))) => {
-
-                            },
-                            (Some(Op::LocalValue(op1)), Some(Op::LocalValue(op2))) => {
-                                
-                            }
-                            _ => {}
-                        }
+                        self.handle_xor(func, &xor);
                     }
         
                     _ => {}

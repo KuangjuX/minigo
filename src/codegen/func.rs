@@ -1,6 +1,8 @@
 use llvm_ir::{BasicBlock, name::Name};
 use std::collections::VecDeque;
 
+use crate::ir::VirtualReg;
+
 use super::{Ty, Var};
 
 
@@ -45,5 +47,16 @@ impl Function {
             }
         }
         false
+    }
+
+    pub fn find_local_var(&self, name: Name) -> Option<&VirtualReg> {
+        for local_var in self.locals.iter() {
+            if let Some(var_name) = local_var.name.clone() {
+                if var_name == name {
+                    return local_var.local_val.as_ref()
+                }
+            }
+        }
+        None
     }
 }

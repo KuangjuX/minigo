@@ -1,5 +1,4 @@
-
-
+use crate::codegen::{Function, Program, PhysicalReg};
 
 /// virtual reg in llvm_ir
 #[derive(Debug)]
@@ -7,8 +6,6 @@ pub enum VirtualReg {
     Reg(RegVar),
     Stack(StackVar)
 }
-
-use crate::codegen::{Function, Program};
 
 /// Store virtual reg into stack
 #[derive(Debug)]
@@ -38,8 +35,15 @@ impl StackVar {
 
     /// Load a stack value into register
     /// return RegVar
-    pub(crate) fn load_stack_var(&self, prog: &Program) -> RegVar {
-        todo!()
+    pub(crate) fn load_stack_var<'ctx>(&self, prog: &'ctx Program) -> Option<PhysicalReg> {
+        if let Some(physical_reg) = prog.allocate_physical_reg() {
+            let reg_name = physical_reg.name.clone();
+            let offset = self.addr;
+            let asm = format!("    ld {}, -{}(sp)", reg_name, offset);
+            prog.write_asm(asm);
+            return Some(physical_reg.clone())
+        }
+        None
     }
 }
 
