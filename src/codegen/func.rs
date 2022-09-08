@@ -1,5 +1,5 @@
 use llvm_ir::{BasicBlock, name::Name};
-use std::collections::VecDeque;
+use std::{collections::VecDeque, cell::RefCell};
 
 use crate::ir::VirtualReg;
 
@@ -15,13 +15,19 @@ pub struct Function {
     /// function basicblocks
     pub(crate) blocks: VecDeque<BasicBlock>,
     /// function stack size
-    pub(crate) stack_size: usize,
+    // pub(crate) stack_size: usize,
     /// function params
     pub(crate) params: Vec<Var>,
     /// function local variables
     pub(crate) locals: Vec<Var>,
     /// function return type
-    pub(crate) ret_ty: Ty
+    pub(crate) ret_ty: Ty,
+
+    pub(crate) inner: RefCell<FuncInner>
+}
+
+pub struct FuncInner {
+    stack_size: usize
 }
 
 impl Function {
@@ -30,10 +36,10 @@ impl Function {
             name: String::new(),
             is_static: false,
             blocks: VecDeque::new(),
-            stack_size: 0,
             params: Vec::new(),
             locals: Vec::new(),
-            ret_ty: Ty::Unknown
+            ret_ty: Ty::Unknown,
+            inner: RefCell::new(FuncInner{ stack_size: 0})
         }
     }
 
@@ -58,5 +64,15 @@ impl Function {
             }
         }
         None
+    }
+
+    pub fn push_var(&self, size: usize) {
+        let mut func_inner = self.inner.borrow_mut();
+        func_inner.stack_size += size;
+    }
+
+    pub fn stack_size(&self) -> usize {
+        let inner = self.inner.borrow();
+        inner.stack_size
     }
 }

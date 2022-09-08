@@ -5,11 +5,12 @@ use std::cell::RefCell;
 use std::fmt::{Write, self};
 use bit_field::BitField;
 use llvm_ir::{ Instruction, operand::Operand, constant::Constant, terminator::Terminator };
+use super::error::Error;
 use super::{ConstValue, PhysicalRegs};
 
 use crate::ir::{StackVar, VirtualReg};
 use crate::utils::{parse_type, align_to, parse_operand};
-use crate::warning;
+use crate::{warning, error};
 
 // use crate::arch::Instruction;
 use super::{Function, VarValue, Ty, Op};
@@ -61,8 +62,17 @@ impl Program {
         asm_file.write(asm.as_bytes()).unwrap();
     }
 
+    // pub(crate) fn push_var(&self, func: &Function, size: usize) {
+    //     let mut inner = self.inner.borrow_mut();
+    //     for f in inner.funcs.iter_mut() {
+    //         if f as *const _ == func as *const _ {
+    //             f.stack_size += size;
+    //         }
+    //     }
+    // }
 
-    fn gen_expr(&self, func: &mut Function) {
+
+    fn gen_expr(&self, func: &mut Function) -> Result<(), Error> {
         for block in func.blocks.iter() {
             for inst in block.instrs.iter() {
                 match inst {
@@ -76,7 +86,7 @@ impl Program {
                                         let mut size = (bits as usize / 8) * value as usize;
                                         size = align_to(size, alloca.alignment as usize);
                                         offset = size;
-                                        func.stack_size += size;
+                                        func.push_var(size);
                                         let asm = format!("    addi sp, sp, -{}", size);
                                         self.write_asm(asm);
                                     },
@@ -97,7 +107,7 @@ impl Program {
                                 // Set local variable name
                                 local_var.name = Some(reg.clone());
                                 // Set stack variable(address, size)
-                                let stack_var = StackVar::new(func.stack_size - offset, size);
+                                let stack_var = StackVar::new(func.stack_size() - offset, size);
                                 local_var.local_val = Some(VirtualReg::Stack(stack_var));
                                 func.locals.push(local_var);
                             } 
@@ -140,7 +150,7 @@ impl Program {
                     },
 
                     Instruction::Xor(xor) => {
-                        self.handle_xor(func, &xor);
+                        self.handle_xor(func, &xor)?
                     }
         
                     _ => {}
@@ -178,7 +188,7 @@ impl Program {
             }
         }
 
-        
+        Ok(())
     }
 
 }
@@ -228,7 +238,7 @@ impl CodeGen for Program {
 
             // sp = sp - stack_size
             self.write_asm("    # Store params");
-            let asm = format!("    addi sp, sp, -{}", func.stack_size);
+            let asm = format!("    addi sp, sp, -{}", func.stack_size());
             self.write_asm(asm);
 
             // Store all params
@@ -244,7 +254,9 @@ impl CodeGen for Program {
                 }
             }
 
-            self.gen_expr(func);
+            if let Err(err) = self.gen_expr(func) {
+                error!("{}", err.message);
+            }
 
         }
         

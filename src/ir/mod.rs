@@ -192,7 +192,7 @@ impl IR {
             match ty {
                 &Type::IntegerType{bits} => {
                     // add stack depth
-                    func.stack_size += 8;
+                    func.push_var(8);
                     // initiaize param 
                     let mut param = Var::uninit();
                     param.var_type = VarType::Param;

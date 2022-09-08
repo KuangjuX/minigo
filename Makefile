@@ -41,7 +41,7 @@ ifeq ($(TARGET),riscv32_test)
 endif
 
 ifeq ($(TARGET),riscv64_test)
-	FEATURES += --features riscv64_test 
+	FEATURES += --features riscv64_test
 endif
 
 .PHONY: run build
@@ -49,7 +49,7 @@ build:
 	@cargo build
 
 run: 
-	@cargo run $(FEATURES)
+	@cargo run $(FEATURES) RUST_BACKTRACE=1
 
 exe:
 	@$(AS) -c main.S -o main
@@ -78,8 +78,5 @@ qemu_test: $(TESTELF)
 
 clean:
 	@cargo clean 
-	@rm $(ASMS)
-	@rm $(OBJS)
-	@rm $(ELF)
 
 
