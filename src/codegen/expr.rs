@@ -1,9 +1,49 @@
-use super::{ Program, Op, Function, Error, ConstValue, ProgInner };
-use llvm_ir::instruction::{Xor, Load};
+use super::{ Program, Op, Function, Error, ConstValue, ProgInner, Var };
+use llvm_ir::instruction::{Xor, Load, Store, Alloca};
 use llvm_ir::terminator::Ret;
-use crate::{utils::parse_operand, ir::VirtualReg};
+use crate::utils::{ parse_operand, parse_type };
+use crate::ir::{VirtualReg, StackVar};
 
 impl Program {
+    pub(crate) fn handle_alloca(&self, prog_inner: &mut ProgInner, func: &Function, inst: &Alloca) -> Result<(), Error> {
+        let num_elements = &inst.num_elements;
+        let allocated_type = &inst.allocated_type;
+        let dest = &inst.dest;
+        match parse_operand(num_elements) {
+            Some(Op::ConstValue(op)) => {
+                match op {
+                    ConstValue::Num(value, size) => {
+                        VirtualReg::allocate_virt_stack_var(self, func, size, dest.clone());
+                    },
+                    _ => {}
+                }
+            },
+            _ => {}
+        }
+        
+        // if let Ok((ty, size)) = parse_type(allocated_type) {
+        //     let reg = &inst.dest;
+        //     let mut func_inner = func.inner.borrow_mut();
+        //     if func_inner.locals.iter().position(|local| local.name == Some(reg.clone())).is_none() {
+        //         let mut local_var = Var::uninit();
+        //         // Set local variable type
+        //         local_var.ty = ty;
+        //         // Set local variable size
+        //         local_var.size = size;
+        //         // Set local variable name
+        //         local_var.name = Some(reg.clone());
+        //         // Set stack variable(address, size)
+        //         let stack_var = VirtualReg::allocate_virt_stack_var(self, func, offset);
+        //         local_var.local_val = Some(VirtualReg::Stack(stack_var));
+        //         func_inner.locals.push(local_var);
+        //     } 
+        // }else{
+        //     // warning!("Fail to parse type: {:?}", &alloca.allocated_type);
+        // }
+        Ok(())
+    }
+
+
     /// Handle xori instruction
     /// xori rd, rs1, imm12
     /// Note, XORI rd, rs1, -1 rs1 (assembler pseudoinstruction NOT rd, rs ).
@@ -33,6 +73,34 @@ impl Program {
             },
             _ => { Err(Error::new("Invalid xor instruction")) }
         }
+    }
+
+    pub(crate) fn handle_store(&self, prog_inner: &mut ProgInner, func: &Function, inst: &Store) -> Result<(), Error> {
+        let address = &inst.address;
+        let value = &inst.value;
+        match (parse_operand(address), parse_operand(value)) {
+            (Some(Op::LocalValue(name)), Some(Op::ConstValue(constval))) => {
+                let local = func.find_local_var(name).ok_or(Error::new("Fail to find local var"))?;
+                match &local {
+                    VirtualReg::Stack(stack_var) => {
+                        let addr = stack_var.addr;
+                        match constval {
+                            ConstValue::Num(val, _) => {
+                                let asm = format!("    addi zero, zero, {}", val);
+                                self.write_asm(asm);
+                                let asm = format!("    sd zero, -{}(fp)", addr);
+                                self.write_asm(asm)
+                            }
+                        }
+                    }
+                    VirtualReg::Reg(reg) => {
+
+                    }
+                }
+            }
+            _ =>{ return Err(Error::new("Fail to parse operand"))}
+        }
+        Ok(())
     }
 
     pub(crate) fn handle_load(&self, prog_inner: &mut ProgInner, func: &Function, inst: &Load) -> Result<(), Error> {

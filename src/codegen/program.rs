@@ -67,86 +67,11 @@ impl Program {
     fn gen_expr(&self, inner: &mut ProgInner, func: &Function) -> Result<(), Error> {
         for block in func.blocks.iter() {
             for inst in block.instrs.iter() {
-                // let inner = Rc::clone(&inner);
                 match inst {
-                    Instruction::Alloca(alloca) => {
-                        let mut offset = 0;
-                        match &alloca.num_elements {
-                            Operand::ConstantOperand(constref) => {
-                                let constval = &**constref;
-                                match constval {
-                                    &Constant::Int{ bits, value} => {
-                                        let mut size = (bits as usize / 8) * value as usize;
-                                        size = align_to(size, alloca.alignment as usize);
-                                        offset = size;
-                                        func.push_var(size);
-                                        let asm = format!("    addi sp, sp, -{}", size);
-                                        self.write_asm(asm);
-                                    },
-                                    _ => {}
-                                }
-                            }
-                            _ => {}
-                        }
-                        
-                        if let Ok((ty, size)) = parse_type(&alloca.allocated_type) {
-                            let reg = &alloca.dest;
-                            let mut func_inner = func.inner.borrow_mut();
-                            if func_inner.locals.iter().position(|local| local.name == Some(reg.clone())).is_none() {
-                                let mut local_var = Var::uninit();
-                                // Set local variable type
-                                local_var.ty = ty;
-                                // Set local variable size
-                                local_var.size = size;
-                                // Set local variable name
-                                local_var.name = Some(reg.clone());
-                                // Set stack variable(address, size)
-                                let stack_var = StackVar::new(func_inner.stack_size - offset, size);
-                                local_var.local_val = Some(VirtualReg::Stack(stack_var));
-                                func_inner.locals.push(local_var);
-                            } 
-                        }else{
-                            warning!("Fail to parse type: {:?}", &alloca.allocated_type);
-                        }
-                    },
-
-                    Instruction::Store(store) => {
-                        let address = &store.address;
-                        let value = &store.value;
-                        if let (Some(address), Some(value)) = (parse_operand(address), parse_operand(value)) {
-                            match (address, value) {
-                                (Op::LocalValue(name), Op::ConstValue(constval)) => {
-                                    let func_inner = func.inner.borrow();
-                                    for local in func_inner.locals.iter() {
-                                        if local.name == Some(name.clone()) {
-                                            match &local.local_val {
-                                                Some(VirtualReg::Stack(stack_var)) => {
-                                                    let addr = stack_var.addr;
-                                                    match constval {
-                                                        ConstValue::Num(val, _) => {
-                                                            let asm = format!("    addi zero, zero, {}", val);
-                                                            self.write_asm(asm);
-                                                            let asm = format!("    sd zero, -{}(fp)", addr);
-                                                            self.write_asm(asm)
-                                                        }
-                                                    }
-                                                }
-                                                Some(VirtualReg::Reg(reg)) => {
-
-                                                },
-                                                None => {}
-                                            }
-                                        }
-                                    }
-                                }
-                                _ =>{}
-                            }
-                        }
-                    },
-
+                    Instruction::Alloca(alloca) => { self.handle_alloca(inner, func, &alloca)? },
+                    Instruction::Store(store) => { self.handle_store(inner, func, &store)? },
                     Instruction::Xor(xor) => { self.handle_xor(inner, func, &xor)? }
                     Instruction::Load(load) => { self.handle_load(inner, func, &load)? }
-        
                     _ => {}
                 }
             }
