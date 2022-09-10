@@ -25,7 +25,7 @@ qemu-riscv64 --version
 ## Usage
 You can use following commond to run this project and generate RISC-V64 assembly:
   
-```assembly
+```
 make run PROG={your example}
 ```  
   
