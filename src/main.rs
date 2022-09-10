@@ -10,6 +10,7 @@ use codegen::CodeGen;
 mod ir;
 use ir::IR;
 use elf::{assemble,  generate_elf};
+use std::env;
 
 
 
@@ -22,16 +23,23 @@ mod arch;
 #[path = "arch/riscv64.rs"]
 mod arch;
 
+// static PROG: &'static str = env!("PROG");
+
 fn main() {
-    let ir = IR::new("unary.bc");
-    let mut program = ir.parse("testcases/unary.S");
+    let PROG = env!("PROG");
+    let bc = format!("{}.bc", PROG);
+    let input = format!("testcases/{}.S", PROG);
+    let obj = format!("testcases/{}.o", PROG);
+    let elf = format!("testcases/{}", PROG);
+    let ir = IR::new(bc);
+    let mut program = ir.parse(input.as_str());
     program.codegen();
     assemble(
-        "testcases/unary.S",
-        "testcases/unary.o"
+        input.as_str(),
+        obj.as_str()
     );
     generate_elf(
-        "testcases/unary.o", 
-        "testcases/unary"
+        obj.as_str(),
+        elf.as_str()
     );
 }
