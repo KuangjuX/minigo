@@ -5,7 +5,7 @@ mod reg;
 mod expr;
 mod error;
 use llvm_ir::Name;
-pub use program::Program;
+pub use program::{ Program, ProgInner };
 pub use func::{ Function };
 pub use var::{ Var, Ty, VarValue, VarType };
 pub use reg::{ PhysicalRegs, PhysicalReg };

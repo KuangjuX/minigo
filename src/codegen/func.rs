@@ -19,7 +19,7 @@ pub struct Function {
     /// function params
     pub(crate) params: Vec<Var>,
     /// function local variables
-    pub(crate) locals: Vec<Var>,
+    // pub(crate) locals: Vec<Var>,
     /// function return type
     pub(crate) ret_ty: Ty,
 
@@ -27,7 +27,8 @@ pub struct Function {
 }
 
 pub struct FuncInner {
-    stack_size: usize
+    pub(crate) stack_size: usize,
+    pub(crate) locals: Vec<Var>
 }
 
 impl Function {
@@ -37,15 +38,18 @@ impl Function {
             is_static: false,
             blocks: VecDeque::new(),
             params: Vec::new(),
-            locals: Vec::new(),
             ret_ty: Ty::Unknown,
-            inner: RefCell::new(FuncInner{ stack_size: 0})
+            inner: RefCell::new(FuncInner{ 
+                stack_size: 0,
+                locals: Vec::new()
+            })
         }
     }
 
     /// check if local variable exist in function
     pub fn local_var_exist(&self, name: Name) -> bool {
-        for local_var in self.locals.iter() {
+        let inner = self.inner.borrow();
+        for local_var in inner.locals.iter() {
             if let Some(var_name) = local_var.name.clone() {
                 if var_name == name {
                     return true
@@ -55,11 +59,12 @@ impl Function {
         false
     }
 
-    pub fn find_local_var(&self, name: Name) -> Option<&VirtualReg> {
-        for local_var in self.locals.iter() {
+    pub fn find_local_var(&self, name: Name) -> Option<VirtualReg> {
+        let inner = self.inner.borrow();
+        for local_var in inner.locals.iter() {
             if let Some(var_name) = local_var.name.clone() {
                 if var_name == name {
-                    return local_var.local_val.as_ref()
+                    return local_var.local_val.clone()
                 }
             }
         }
@@ -74,5 +79,10 @@ impl Function {
     pub fn stack_size(&self) -> usize {
         let inner = self.inner.borrow();
         inner.stack_size
+    }
+
+    pub(crate) fn add_local_var(&self, var: Var) {
+        let mut inner = self.inner.borrow_mut();
+        inner.locals.push(var);
     }
 }

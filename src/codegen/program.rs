@@ -1,8 +1,9 @@
 use std::collections::VecDeque;
 use std::fs::File;
 use std::io::Write as Write2;
-use std::cell::RefCell;
+use std::cell::{ RefCell, UnsafeCell };
 use std::fmt::{Write, self};
+use std::rc::Rc;
 use bit_field::BitField;
 use llvm_ir::{ Instruction, operand::Operand, constant::Constant, terminator::Terminator };
 use super::error::Error;
@@ -28,7 +29,7 @@ impl Write for Program {
 pub struct Program {
     pub(crate) asm_file: RefCell<File>,
     // pub(crate) module: Module,
-    pub(crate) inner: RefCell<ProgInner>
+    pub(crate) inner: UnsafeCell<ProgInner>
 }
 
 pub struct ProgInner {
@@ -43,16 +44,15 @@ impl Program {
         Self{
             /// Output assemble file
             asm_file: RefCell::new(asm),
-            inner: RefCell::new(
-                ProgInner {
-                    /// All function in ir
-                    funcs: VecDeque::new(),
-                    /// All global variable in ir
-                    vars: VecDeque::new(),
-                    regs: PhysicalRegs::init(),
-                    stack_depth: 0
-                }
-            )
+            inner: UnsafeCell::new(
+                    ProgInner {
+                        /// All function in ir
+                        funcs: VecDeque::new(),
+                        /// All global variable in ir
+                        vars: VecDeque::new(),
+                        regs: PhysicalRegs::init(),
+                        stack_depth: 0
+                    })
         }
     }
 
@@ -62,19 +62,12 @@ impl Program {
         asm_file.write(asm.as_bytes()).unwrap();
     }
 
-    // pub(crate) fn push_var(&self, func: &Function, size: usize) {
-    //     let mut inner = self.inner.borrow_mut();
-    //     for f in inner.funcs.iter_mut() {
-    //         if f as *const _ == func as *const _ {
-    //             f.stack_size += size;
-    //         }
-    //     }
-    // }
 
 
-    fn gen_expr(&self, func: &mut Function) -> Result<(), Error> {
+    fn gen_expr(&self, inner: &mut ProgInner, func: &Function) -> Result<(), Error> {
         for block in func.blocks.iter() {
             for inst in block.instrs.iter() {
+                // let inner = Rc::clone(&inner);
                 match inst {
                     Instruction::Alloca(alloca) => {
                         let mut offset = 0;
@@ -98,7 +91,8 @@ impl Program {
                         
                         if let Ok((ty, size)) = parse_type(&alloca.allocated_type) {
                             let reg = &alloca.dest;
-                            if func.locals.iter().position(|local| local.name == Some(reg.clone())).is_none() {
+                            let mut func_inner = func.inner.borrow_mut();
+                            if func_inner.locals.iter().position(|local| local.name == Some(reg.clone())).is_none() {
                                 let mut local_var = Var::uninit();
                                 // Set local variable type
                                 local_var.ty = ty;
@@ -107,9 +101,9 @@ impl Program {
                                 // Set local variable name
                                 local_var.name = Some(reg.clone());
                                 // Set stack variable(address, size)
-                                let stack_var = StackVar::new(func.stack_size() - offset, size);
+                                let stack_var = StackVar::new(func_inner.stack_size - offset, size);
                                 local_var.local_val = Some(VirtualReg::Stack(stack_var));
-                                func.locals.push(local_var);
+                                func_inner.locals.push(local_var);
                             } 
                         }else{
                             warning!("Fail to parse type: {:?}", &alloca.allocated_type);
@@ -122,7 +116,8 @@ impl Program {
                         if let (Some(address), Some(value)) = (parse_operand(address), parse_operand(value)) {
                             match (address, value) {
                                 (Op::LocalValue(name), Op::ConstValue(constval)) => {
-                                    for local in func.locals.iter() {
+                                    let func_inner = func.inner.borrow();
+                                    for local in func_inner.locals.iter() {
                                         if local.name == Some(name.clone()) {
                                             match &local.local_val {
                                                 Some(VirtualReg::Stack(stack_var)) => {
@@ -149,8 +144,13 @@ impl Program {
                         }
                     },
 
-                    Instruction::Xor(xor) => {
-                        self.handle_xor(func, &xor)?
+                    Instruction::Xor(xor) => { 
+                        // let inner = Rc::clone(&inner);
+                        self.handle_xor(inner, func, &xor)? 
+                    }
+                    Instruction::Load(load) => { 
+                        // let inner = Rc::clone(&inner);
+                        self.handle_load(inner, func, &load)? 
                     }
         
                     _ => {}
@@ -195,10 +195,10 @@ impl Program {
 
 impl CodeGen for Program {
     /// generation text section
-    fn emit_text(&mut self) {        
+    fn emit_text(&mut self) {      
         // generate section
-        let mut inner = self.inner.borrow_mut();
-        for func in inner.funcs.iter_mut() {
+        let inner = unsafe{ &mut *self.inner.get() };
+        for func in inner.funcs.iter() {
             if func.is_static {
                 let asm = format!("    .local {}", func.name);
                 self.write_asm(asm);
@@ -220,7 +220,7 @@ impl CodeGen for Program {
             * ---------------------- // fp = sp - 16
             *       params           
             * ---------------------- // sp = sp - 16 - params size
-            *      exprs
+            *       exprs
             * ----------------------
             */
             self.write_asm("    # Store ra register");
@@ -254,7 +254,9 @@ impl CodeGen for Program {
                 }
             }
 
-            if let Err(err) = self.gen_expr(func) {
+            self.write_asm("    # generate expr");
+            let inner = unsafe{ &mut *self.inner.get() };
+            if let Err(err) = self.gen_expr(inner, func) {
                 error!("{}", err.message);
             }
 
@@ -264,7 +266,7 @@ impl CodeGen for Program {
 
     /// generate data section
     fn emit_data(&mut self) {
-        let inner = self.inner.borrow();
+        let inner = unsafe{ &mut *self.inner.get() };
         for var in inner.vars.iter() {
             if var.is_static {
                 if let Some(name) = var.name.clone() {

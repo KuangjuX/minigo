@@ -14,7 +14,7 @@ LLC 		= llc-10
 QEMU		= qemu-riscv64
 
 TEST		= testcases
-PROG 		= unary
+PROG 		= many_registers
 TESTELF		= $(TEST)/$(PROG)
 TESTASM     = $(TESTELF).S
 TESTPROG	= $(TESTELF).c
@@ -49,7 +49,7 @@ build:
 	@cargo build
 
 run: 
-	@cargo run $(FEATURES) RUST_BACKTRACE=1
+	@RUST_BACKTRACE=1 cargo run $(FEATURES) 
 
 exe:
 	@$(AS) -c main.S -o main

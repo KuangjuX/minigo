@@ -213,7 +213,7 @@ impl IR {
         let asm = File::create(asm).unwrap();
         let program = Program::new(asm);
         // parse global variable
-        let mut inner = program.inner.borrow_mut();
+        let inner = unsafe{ &mut *program.inner.get() };
         for var in self.module.global_vars.iter() {
             let new_var = self.parse_variable(var);
             inner.vars.push_back(new_var);
