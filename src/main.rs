@@ -27,11 +27,11 @@ fn main() {
     let mut program = ir.parse("testcases/unary.S");
     program.codegen();
     assemble(
-        "testcases/test.S",
-        "testcases/test.o"
+        "testcases/unary.S",
+        "testcases/unary.o"
     );
     generate_elf(
-        "testcases/test.o", 
-        "testcases/test"
+        "testcases/unary.o", 
+        "testcases/unary"
     );
 }

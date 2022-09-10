@@ -144,14 +144,8 @@ impl Program {
                         }
                     },
 
-                    Instruction::Xor(xor) => { 
-                        // let inner = Rc::clone(&inner);
-                        self.handle_xor(inner, func, &xor)? 
-                    }
-                    Instruction::Load(load) => { 
-                        // let inner = Rc::clone(&inner);
-                        self.handle_load(inner, func, &load)? 
-                    }
+                    Instruction::Xor(xor) => { self.handle_xor(inner, func, &xor)? }
+                    Instruction::Load(load) => { self.handle_load(inner, func, &load)? }
         
                     _ => {}
                 }
@@ -159,30 +153,7 @@ impl Program {
             let termianl = &block.term;
             match termianl {
                 Terminator::Ret(ret) => {
-                    // return 
-                    self.write_asm("# function return");
-                    self.write_asm("    mv sp, fp");
-                    self.write_asm("    ld fp, 0(sp)");
-                    self.write_asm("    ld ra, 8(sp)");
-                    self.write_asm("    addi sp, sp, 16");
-                    if let Some(op) = &ret.return_operand {
-                        if let Some(op) = parse_operand(op) {
-                            match op {
-                                Op::ConstValue(constval) => {
-                                    match constval {
-                                        ConstValue::Num(num, _) => {
-                                            let asm = format!("    li a0, {}", num);
-                                            self.write_asm(asm);
-                                        }
-                                    }
-                                }
-                                Op::LocalValue(name) => {
-                                    // let asm = format!("mv a0, {}", )
-                                }
-                            }
-                        }
-                    }
-                    self.write_asm("    ret\n\n");
+                    self.handle_ret(func, &ret)?;
                 }
                 _ => {}
             }

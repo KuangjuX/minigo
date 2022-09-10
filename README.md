@@ -24,7 +24,7 @@ qemu-riscv64 --version
 
 ## RoadMap
 - [x] Return `main` function
-- [ ] Unary Experssions
+- [x] Unary Experssions
 - [ ] Add, Sub, Mul, Div,Mod
 - [ ] Compare && Logical Experssions
 - [ ] Local Variables and Assignment
