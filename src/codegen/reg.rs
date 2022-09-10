@@ -1,4 +1,4 @@
-use super::{ Program, ProgInner };
+use super::{  ProgInner };
 
 impl ProgInner {
     pub(crate) fn allocate_physical_reg(&mut self) -> Option<PhysicalReg> {
@@ -10,6 +10,10 @@ impl ProgInner {
 
     pub(crate) fn free_physical_reg(&mut self, name: String) -> bool {
         self.regs.free_physical_name(name)
+    }
+
+    pub(crate) fn free_all_physical_regs(&mut self) {
+        self.regs.free_all_physical_regs();
     }
 }
 
@@ -58,5 +62,13 @@ impl PhysicalRegs {
             }
         }
         false
+    }
+    
+    pub(crate) fn free_all_physical_regs(&mut self) {
+        for reg in self.regs.iter_mut() {
+            if reg.allocated {
+                reg.allocated = false
+            }
+        }
     }
 }

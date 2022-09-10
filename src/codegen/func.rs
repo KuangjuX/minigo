@@ -14,20 +14,18 @@ pub struct Function {
     pub(crate) is_static: bool,
     /// function basicblocks
     pub(crate) blocks: VecDeque<BasicBlock>,
-    /// function stack size
-    // pub(crate) stack_size: usize,
     /// function params
     pub(crate) params: Vec<Var>,
-    /// function local variables
-    // pub(crate) locals: Vec<Var>,
     /// function return type
     pub(crate) ret_ty: Ty,
-
+    /// function inner, which will be changer during runtime
     pub(crate) inner: RefCell<FuncInner>
 }
 
 pub struct FuncInner {
+    /// function stack size
     pub(crate) stack_size: usize,
+    /// function local variables
     pub(crate) locals: Vec<Var>
 }
 

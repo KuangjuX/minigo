@@ -3,18 +3,15 @@ use std::fs::File;
 use std::io::Write as Write2;
 use std::cell::{ RefCell, UnsafeCell };
 use std::fmt::{Write, self};
-use std::rc::Rc;
 use bit_field::BitField;
-use llvm_ir::{ Instruction, operand::Operand, constant::Constant, terminator::Terminator };
+use llvm_ir::{ Instruction, terminator::Terminator };
 use super::error::Error;
-use super::{ConstValue, PhysicalRegs};
+use super::{PhysicalRegs};
 
-use crate::ir::{StackVar, VirtualReg};
-use crate::utils::{parse_type, align_to, parse_operand};
-use crate::{warning, error};
+use crate::error;
 
 // use crate::arch::Instruction;
-use super::{Function, VarValue, Ty, Op};
+use super::{Function, VarValue, Ty};
 use super::{CodeGen, Var};
 
 impl Write for Program {
@@ -28,15 +25,13 @@ impl Write for Program {
 
 pub struct Program {
     pub(crate) asm_file: RefCell<File>,
-    // pub(crate) module: Module,
     pub(crate) inner: UnsafeCell<ProgInner>
 }
 
 pub struct ProgInner {
     pub(crate) funcs: VecDeque<Function>,
     pub(crate) vars: VecDeque<Var>,
-    pub(crate) regs: PhysicalRegs,
-    pub(crate) stack_depth: usize
+    pub(crate) regs: PhysicalRegs
 }
 
 impl Program {
@@ -50,8 +45,7 @@ impl Program {
                         funcs: VecDeque::new(),
                         /// All global variable in ir
                         vars: VecDeque::new(),
-                        regs: PhysicalRegs::init(),
-                        stack_depth: 0
+                        regs: PhysicalRegs::init()
                     })
         }
     }
@@ -61,8 +55,6 @@ impl Program {
         let mut asm_file = self.asm_file.borrow_mut();
         asm_file.write(asm.as_bytes()).unwrap();
     }
-
-
 
     fn gen_expr(&self, inner: &mut ProgInner, func: &Function) -> Result<(), Error> {
         for block in func.blocks.iter() {
@@ -155,7 +147,8 @@ impl CodeGen for Program {
             if let Err(err) = self.gen_expr(inner, func) {
                 error!("{}", err.message);
             }
-
+            let inner = unsafe{ &mut *self.inner.get() };
+            inner.free_all_physical_regs();
         }
         
     }

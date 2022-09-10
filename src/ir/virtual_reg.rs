@@ -1,4 +1,4 @@
-use crate::codegen::{Function, Program, PhysicalReg, Var, ProgInner};
+use crate::codegen::{Function, Program, Var, ProgInner};
 use llvm_ir::name::Name;
 
 /// virtual reg in llvm_ir
