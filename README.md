@@ -22,6 +22,15 @@ qemu-riscv64 --version
 ```
 - RISC -V ToolChains
 
+## Usage
+You can use following commond to run this project and generate RISC-V64 assembly:
+  
+```assembly
+make run PROG={your example}
+```  
+  
+We suppply some test examples under testcases directory
+
 ## RoadMap
 - [x] Return `main` function
 - [x] Unary Experssions
