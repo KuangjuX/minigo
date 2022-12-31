@@ -1,6 +1,7 @@
 use std::fmt::format;
 
 use super::{ Program, Op, Function, Error, ConstValue, ProgInner, Var };
+use llvm_ir::Name;
 use llvm_ir::instruction::{Xor, Load, Store, Alloca, Add};
 use llvm_ir::terminator::Ret;
 use crate::utils::{ parse_operand, parse_type, parse_operand_2 };
@@ -15,6 +16,11 @@ impl Program {
             Some(Op::ConstValue(op)) => {
                 match op {
                     ConstValue::Num(value, size) => {
+                        let size = if size >= 8 {
+                            size
+                        }else{
+                            8
+                        };
                         VirtualReg::allocate_virt_stack_var(self, func, size, dest.clone());
                     },
                     _ => {}
@@ -89,9 +95,21 @@ impl Program {
                         let addr = stack_var.addr;
                         match constval {
                             ConstValue::Num(val, _) => {
-                                let asm = format!("    addi zero, zero, {}", val);
+                                let name = Name::Name(Box::new(String::from("temp")));
+                                let temp_reg;
+                                if !func.local_var_exist(name.clone()) {
+                                    temp_reg = VirtualReg::allocate_virt_reg_var(prog_inner, func, name.clone()).ok_or(Error::new("Fail to allocate register"))?;
+                                    
+                                }else{
+                                    let local_var = func.find_local_var(name).ok_or(Error::new("Fail to find reg"))?;
+                                    match local_var {
+                                        VirtualReg::Reg(reg) => { temp_reg = reg },
+                                        VirtualReg::Stack(stack) => { todo!() }
+                                    }
+                                }
+                                let asm = format!("    addi {}, zero, {}", temp_reg.name, val);
                                 self.write_asm(asm);
-                                let asm = format!("    sd zero, -{}(fp)", addr);
+                                let asm = format!("    sd {}, -{}(fp)", temp_reg.name, addr);
                                 self.write_asm(asm)
                             }
                         }
@@ -146,7 +164,7 @@ impl Program {
                                 todo!();
                             },
                             (VirtualReg::Reg(reg1), VirtualReg::Reg(reg2)) => {
-                                let asm = format!("    add {}, {}, {}", dest_reg_var.name, reg1.name, reg2.name);
+                                let asm = format!("    addw {}, {}, {}", dest_reg_var.name, reg1.name, reg2.name);
                                 self.write_asm(asm);
                             },
                             _ => { todo!() }

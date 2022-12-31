@@ -76,6 +76,8 @@ gen_exe:
 qemu_test: $(TESTELF) 
 	@$(QEMU) $(TESTELF)
 
+
+
 clean:
 	@cargo clean 
 	@rm *.s *.ll *.bc || true

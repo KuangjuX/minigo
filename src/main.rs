@@ -9,7 +9,7 @@ use codegen::CodeGen;
 
 mod ir;
 use ir::IR;
-use elf::{assemble,  generate_elf};
+use elf::{assemble,  generate_elf, run_elf};
 use std::env;
 
 
@@ -42,4 +42,5 @@ fn main() {
         obj.as_str(),
         elf.as_str()
     );
+    run_elf(elf.as_str());
 }

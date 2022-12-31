@@ -37,6 +37,20 @@ pub fn generate_elf(input: &str, output: &str) {
     }
 }
 
+pub fn run_elf(elf: &str) {
+    let mut cmd = Command::new("qemu-riscv64")
+                .arg(elf)
+                .spawn().unwrap();
+    cmd.wait().unwrap();
+
+    // let mut echo = Command::new("sh");
+    // echo
+    //     .arg("-c")
+    //     .arg("echo $?");
+    // let x = echo.output().unwrap();
+    
+}
+
 
 pub fn run_linker(input: &str, output: &str) {
     match (find_ld(), find_libpath()) {
