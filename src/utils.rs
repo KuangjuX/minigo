@@ -39,3 +39,10 @@ pub fn parse_operand(operand: &Operand) -> Option<Op> {
     }
     None
 }
+
+pub fn parse_operand_2(op1: &Operand, op2: &Operand) -> Option<(Op, Op)> {
+    match (parse_operand(op1), parse_operand(op2)) {
+        (Some(ans1), Some(ans2)) => { Some((ans1, ans2)) },
+        _ => None
+    }
+}

@@ -1,7 +1,9 @@
+use std::fmt::format;
+
 use super::{ Program, Op, Function, Error, ConstValue, ProgInner, Var };
-use llvm_ir::instruction::{Xor, Load, Store, Alloca};
+use llvm_ir::instruction::{Xor, Load, Store, Alloca, Add};
 use llvm_ir::terminator::Ret;
-use crate::utils::{ parse_operand, parse_type };
+use crate::utils::{ parse_operand, parse_type, parse_operand_2 };
 use crate::ir::{VirtualReg, StackVar};
 
 impl Program {
@@ -75,6 +77,7 @@ impl Program {
         }
     }
 
+    /// handle store instruction
     pub(crate) fn handle_store(&self, prog_inner: &mut ProgInner, func: &Function, inst: &Store) -> Result<(), Error> {
         let address = &inst.address;
         let value = &inst.value;
@@ -103,6 +106,7 @@ impl Program {
         Ok(())
     }
 
+    /// handle load instruction
     pub(crate) fn handle_load(&self, prog_inner: &mut ProgInner, func: &Function, inst: &Load) -> Result<(), Error> {
         let address = &inst.address;
         let dest = &inst.dest;
@@ -124,6 +128,40 @@ impl Program {
         Ok(())
     }
 
+    /// handle add instruction
+    pub(crate) fn handle_add(&self, prog_inner: &mut ProgInner, func: &Function, inst: &Add) -> Result<(), Error> {
+        let op0 = &inst.operand0;
+        let op1 = &inst.operand1;
+        let dest = &inst.dest;
+        let dest_reg_var = VirtualReg::allocate_virt_reg_var(prog_inner, func, dest.clone()).ok_or(Error::new("Fail to allocate reg var"))?;
+        match parse_operand_2(op0, op1) {
+            Some((ans1, ans2)) => {
+                match (ans1, ans2) {
+                    (Op::LocalValue(loc1), Op::LocalValue(loc2)) => {
+                        let var1 = func.find_local_var(loc1).ok_or(Error::new("Fail to find var"))?;
+                        let var2 = func.find_local_var(loc2).ok_or(Error::new("Fail to find var"))?;
+                        println!("[Debug] var1: {:?}, var2: {:?}", var1, var2);
+                        match (var1, var2) {
+                            (VirtualReg::Stack(stack1), VirtualReg::Stack(stack2)) => {
+                                todo!();
+                            },
+                            (VirtualReg::Reg(reg1), VirtualReg::Reg(reg2)) => {
+                                let asm = format!("    add {}, {}, {}", dest_reg_var.name, reg1.name, reg2.name);
+                                self.write_asm(asm);
+                            },
+                            _ => { todo!() }
+                        }
+
+                    },
+                    _ => {}
+                }
+            },
+            None => return Err(Error::new("Fail to parse operand"))
+        }
+        Ok(())
+    }
+
+    /// handle ret instruction
     pub(crate) fn handle_ret(&self, func: &Function, inst: &Ret) -> Result<(), Error> {
         // return 
         if let Some(op) = &inst.return_operand {

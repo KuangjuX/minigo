@@ -14,7 +14,7 @@ LLC 		= llc-10
 QEMU		= qemu-riscv64
 
 TEST		= testcases
-PROG 		?= unary
+PROG 		?= add_sub_mul_div_mod
 TESTELF		= $(TEST)/$(PROG)
 TESTASM     = $(TESTELF).S
 TESTPROG	= $(TESTELF).c
@@ -64,8 +64,8 @@ gen_bc:
 llc:
 	@$(LLC) --march=riscv64 $(PROG).ll
 
-gen_asm: $(TEST)/test.c
-	@$(CC) -S $(CFLAGS) $(TEST)/test.c -o $(TESTASM)
+gen_asm: $(TESTPROG)
+	@$(CC) -S $(CFLAGS) $(TESTPROG) -o $(TESTASM)
 
 display_compile:
 	@$(CC) $(TESTPROG) $(CFLAGS) -v -o $(TESTELF)
@@ -78,5 +78,7 @@ qemu_test: $(TESTELF)
 
 clean:
 	@cargo clean 
+	@rm *.s *.ll *.bc || true
+	@make -C testcases
 
 
