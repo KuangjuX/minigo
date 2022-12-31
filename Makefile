@@ -76,7 +76,11 @@ gen_exe:
 qemu_test: $(TESTELF) 
 	@$(QEMU) $(TESTELF)
 
-
+debug:
+	@tmux new-session -d \
+		"$(QEMU) -s -S" && \
+		tmux split-window -h "$(RVDIR)/riscv64-unknown-elf-gdb -ex 'file $(TESTELF)' -ex 'set arch riscv:rv64' -ex 'target remote localhost:1234'" && \
+		tmux -2 attach-session -d
 
 clean:
 	@cargo clean 

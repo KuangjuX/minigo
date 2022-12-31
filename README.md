@@ -28,6 +28,20 @@ You can use following commond to run this project and generate RISC-V64 assembly
 ```
 make run PROG={your example}
 ```  
+
+## Debug
+
+**One Terminal:**
+```shell
+qemu-riscv64 -g 1234 testcases/{ELF}
+```
+
+**Other Terminal:**
+```shell
+riscv64-unknown-elf-gdb testcases/{E:F}
+target remote localhost:1234
+```
+
   
 We suppply some test examples under testcases directory
 
