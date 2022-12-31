@@ -65,6 +65,7 @@ impl Program {
                     Instruction::Xor(xor) => { self.handle_xor(inner, func, &xor)? }
                     Instruction::Load(load) => { self.handle_load(inner, func, &load)? }
                     Instruction::Add(add) => { self.handle_add(inner, func, &add)? }
+                    Instruction::Sub(sub) => { self.handle_sub(inner, func, &sub)? }
                     _ => {}
                 }
             }
