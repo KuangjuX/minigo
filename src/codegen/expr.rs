@@ -1,8 +1,6 @@
-use std::fmt::format;
-
 use super::{ Program, Op, Function, Error, ConstValue, ProgInner, Var };
 use llvm_ir::Name;
-use llvm_ir::instruction::{Xor, Load, Store, Alloca, Add, Sub};
+use llvm_ir::instruction::{Xor, Load, Store, Alloca, Add, Sub, Mul};
 use llvm_ir::terminator::Ret;
 use crate::utils::{ parse_operand, parse_type, parse_operand_2 };
 use crate::ir::{VirtualReg, StackVar};
@@ -158,7 +156,7 @@ impl Program {
                     (Op::LocalValue(loc1), Op::LocalValue(loc2)) => {
                         let var1 = func.find_local_var(loc1).ok_or(Error::new("Fail to find var"))?;
                         let var2 = func.find_local_var(loc2).ok_or(Error::new("Fail to find var"))?;
-                        println!("[Debug] var1: {:?}, var2: {:?}", var1, var2);
+                        // println!("[Debug] var1: {:?}, var2: {:?}", var1, var2);
                         match (var1, var2) {
                             (VirtualReg::Stack(stack1), VirtualReg::Stack(stack2)) => {
                                 todo!();
@@ -179,7 +177,7 @@ impl Program {
         Ok(())
     }
 
-     /// handle add instruction
+     /// handle sub instruction
      pub(crate) fn handle_sub(&self, prog_inner: &mut ProgInner, func: &Function, inst: &Sub) -> Result<(), Error> {
         let op0 = &inst.operand0;
         let op1 = &inst.operand1;
@@ -191,7 +189,7 @@ impl Program {
                     (Op::LocalValue(loc1), Op::LocalValue(loc2)) => {
                         let var1 = func.find_local_var(loc1).ok_or(Error::new("Fail to find var"))?;
                         let var2 = func.find_local_var(loc2).ok_or(Error::new("Fail to find var"))?;
-                        println!("[Debug] var1: {:?}, var2: {:?}", var1, var2);
+                        // println!("[Debug] var1: {:?}, var2: {:?}", var1, var2);
                         match (var1, var2) {
                             (VirtualReg::Stack(stack1), VirtualReg::Stack(stack2)) => {
                                 todo!();
@@ -211,6 +209,40 @@ impl Program {
         }
         Ok(())
     }
+
+         /// handle mul instruction
+         pub(crate) fn handle_mul(&self, prog_inner: &mut ProgInner, func: &Function, inst: &Mul) -> Result<(), Error> {
+            let op0 = &inst.operand0;
+            let op1 = &inst.operand1;
+            let dest = &inst.dest;
+            let dest_reg_var = VirtualReg::allocate_virt_reg_var(prog_inner, func, dest.clone()).ok_or(Error::new("Fail to allocate reg var"))?;
+            match parse_operand_2(op0, op1) {
+                Some((ans1, ans2)) => {
+                    match (ans1, ans2) {
+                        (Op::LocalValue(loc1), Op::LocalValue(loc2)) => {
+                            let var1 = func.find_local_var(loc1).ok_or(Error::new("Fail to find var"))?;
+                            let var2 = func.find_local_var(loc2).ok_or(Error::new("Fail to find var"))?;
+                            match (var1, var2) {
+                                (VirtualReg::Stack(stack1), VirtualReg::Stack(stack2)) => {
+                                    todo!();
+                                },
+                                (VirtualReg::Reg(reg1), VirtualReg::Reg(reg2)) => {
+                                    let asm = format!("    mul {}, {}, {}", dest_reg_var.name, reg1.name, reg2.name);
+                                    self.write_asm(asm);
+                                },
+                                _ => { todo!() }
+                            }
+    
+                        },
+                        _ => {}
+                    }
+                },
+                None => return Err(Error::new("Fail to parse operand"))
+            }
+            Ok(())
+        }
+    
+
 
     /// handle ret instruction
     pub(crate) fn handle_ret(&self, func: &Function, inst: &Ret) -> Result<(), Error> {
