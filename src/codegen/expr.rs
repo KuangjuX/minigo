@@ -1,14 +1,12 @@
-use std::clone;
-
-use super::{ Program, Op, Function, Error, ConstValue, ProgInner, Var };
+use super::{ Program, Op, Function, Result, Error, ConstValue, ProgInner, Var, func };
 use llvm_ir::{Name, IntPredicate};
 use llvm_ir::instruction::{Xor, Load, Store, Alloca, Add, Sub, Mul, SDiv, ICmp, ZExt};
-use llvm_ir::terminator::Ret;
+use llvm_ir::terminator::{Ret, Br, CondBr};
 use crate::utils::{ parse_operand, parse_type, parse_operand_2 };
 use crate::ir::{VirtualReg, StackVar};
 
 impl Program {
-    pub(crate) fn handle_alloca(&self, prog_inner: &mut ProgInner, func: &Function, inst: &Alloca) -> Result<(), Error> {
+    pub(crate) fn handle_alloca(&self, prog_inner: &mut ProgInner, func: &Function, inst: &Alloca) -> Result<()> {
         let num_elements = &inst.num_elements;
         let allocated_type = &inst.allocated_type;
         let dest = &inst.dest;
@@ -55,7 +53,7 @@ impl Program {
     /// Handle xori instruction
     /// xori rd, rs1, imm12
     /// Note, XORI rd, rs1, -1 rs1 (assembler pseudoinstruction NOT rd, rs ).
-    pub(crate) fn handle_xor(&self, prog_inner: &mut ProgInner, func: &Function, inst: &Xor) -> Result<(), Error> {
+    pub(crate) fn handle_xor(&self, prog_inner: &mut ProgInner, func: &Function, inst: &Xor) -> Result<()> {
         let op0 = &inst.operand0;
         let op1 = &inst.operand1;
         let dest = &inst.dest;
@@ -84,7 +82,7 @@ impl Program {
     }
 
     /// handle store instruction
-    pub(crate) fn handle_store(&self, prog_inner: &mut ProgInner, func: &Function, inst: &Store) -> Result<(), Error> {
+    pub(crate) fn handle_store(&self, prog_inner: &mut ProgInner, func: &Function, inst: &Store) -> Result<()> {
         let address = &inst.address;
         let value = &inst.value;
         match (parse_operand(address), parse_operand(value)) {
@@ -125,7 +123,7 @@ impl Program {
     }
 
     /// handle load instruction
-    pub(crate) fn handle_load(&self, prog_inner: &mut ProgInner, func: &Function, inst: &Load) -> Result<(), Error> {
+    pub(crate) fn handle_load(&self, prog_inner: &mut ProgInner, func: &Function, inst: &Load) -> Result<()> {
         let address = &inst.address;
         let dest = &inst.dest;
         let dest_reg_var = VirtualReg::allocate_virt_reg_var(prog_inner, func, dest.clone()).ok_or(Error::new("Fail to allocate reg var"))?;
@@ -147,7 +145,7 @@ impl Program {
     }
 
     /// handle add instruction
-    pub(crate) fn handle_add(&self, prog_inner: &mut ProgInner, func: &Function, inst: &Add) -> Result<(), Error> {
+    pub(crate) fn handle_add(&self, prog_inner: &mut ProgInner, func: &Function, inst: &Add) -> Result<()> {
         let op0 = &inst.operand0;
         let op1 = &inst.operand1;
         let dest = &inst.dest;
@@ -180,7 +178,7 @@ impl Program {
     }
 
      /// handle sub instruction
-     pub(crate) fn handle_sub(&self, prog_inner: &mut ProgInner, func: &Function, inst: &Sub) -> Result<(), Error> {
+     pub(crate) fn handle_sub(&self, prog_inner: &mut ProgInner, func: &Function, inst: &Sub) -> Result<()> {
         let op0 = &inst.operand0;
         let op1 = &inst.operand1;
         let dest = &inst.dest;
@@ -213,7 +211,7 @@ impl Program {
     }
 
     /// handle mul instruction
-    pub(crate) fn handle_mul(&self, prog_inner: &mut ProgInner, func: &Function, inst: &Mul) -> Result<(), Error> {
+    pub(crate) fn handle_mul(&self, prog_inner: &mut ProgInner, func: &Function, inst: &Mul) -> Result<()> {
     let op0 = &inst.operand0;
     let op1 = &inst.operand1;
     let dest = &inst.dest;
@@ -245,7 +243,7 @@ impl Program {
 }
 
     /// handle sdiv instruction
-    pub(crate) fn handle_sdiv(&self, prog_inner: &mut ProgInner, func: &Function, inst: &SDiv) -> Result<(), Error> {
+    pub(crate) fn handle_sdiv(&self, prog_inner: &mut ProgInner, func: &Function, inst: &SDiv) -> Result<()> {
         let op0 = &inst.operand0;
         let op1 = &inst.operand1;
         let dest = &inst.dest;
@@ -277,7 +275,7 @@ impl Program {
     }
 
     /// handle icmp instruction
-    pub(crate) fn handle_icmp(&self, prog_inner: &mut ProgInner, func: &Function, inst: &ICmp) -> Result<(), Error> {
+    pub(crate) fn handle_icmp(&self, prog_inner: &mut ProgInner, func: &Function, inst: &ICmp) -> Result<()> {
         let predicate = &inst.predicate;
         let op0 = &inst.operand0;
         let op1 = &inst.operand1;
@@ -353,7 +351,7 @@ impl Program {
     } 
 
     /// handle zext
-    pub(crate) fn handle_zext(&self, prog_inner: &mut ProgInner, func: &Function, inst: &ZExt) -> Result<(), Error> {
+    pub(crate) fn handle_zext(&self, prog_inner: &mut ProgInner, func: &Function, inst: &ZExt) -> Result<()> {
         let dest = &inst.dest;
         let op = &inst.operand;
         if let Some(op) = parse_operand(op) {
@@ -380,7 +378,7 @@ impl Program {
 
 
     /// handle ret instruction
-    pub(crate) fn handle_ret(&self, func: &Function, inst: &Ret) -> Result<(), Error> {
+    pub(crate) fn handle_ret(&self, func: &Function, inst: &Ret) -> Result<()> {
         // return 
         if let Some(op) = &inst.return_operand {
             match parse_operand(op) {
@@ -414,5 +412,36 @@ impl Program {
         self.write_asm("    addi sp, sp, 16");
         self.write_asm("    ret\n\n");
         Ok(())
+    }
+
+    /// handle br
+    pub(crate) fn handle_br(&self, func: &Function, inst: &Br) -> Result<()> {
+        let llvm_name = inst.dest.clone();
+        if let Some(label) = func.find_label(llvm_name.clone()) {
+            let asm = format!("j {}", label.label_name);
+            self.write_asm(asm);
+            return Ok(())
+        }
+        Err(Error::LabelNotFoundErr{ err: format!("Fail to found label {}", llvm_name)})
+    }
+
+    pub(crate) fn handle_condbr(&self, prog_inner: &mut ProgInner, func: &Function, inst: &CondBr) -> Result<()> {
+        let condvar = &inst.condition;
+        let true_dest = inst.true_dest.clone();
+        let false_dest = inst.false_dest.clone();
+        let true_dest = func.find_label(true_dest.clone()).ok_or(Error::LabelNotFoundErr{ err: format!("Fail to find label {:?}", true_dest.clone())})?;
+        let false_dest = func.find_label(false_dest.clone()).ok_or(Error::LabelNotFoundErr{ err: format!("Fail to find label {:?}", false_dest.clone())})?;
+        if let Some(condvar) = parse_operand(condvar) {
+            match condvar {
+                Op::LocalValue(reg) => {
+                    let asm = format!("\tbne {}, zero, {}", reg, true_dest.label_name);
+                    self.write_asm(asm);
+                    let asm = format!("j {}", false_dest.label_name);
+                    self.write_asm(asm)
+                },
+                _ => { return Err(Error::new(format!("Unexpected local variable type, {:?}", condvar)));}
+            }
+        }
+        Err(Error::ParseErr{ err: format!("Fail to found parse {:?}", condvar)})
     }
 }

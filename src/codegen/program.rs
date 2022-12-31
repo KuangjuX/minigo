@@ -6,6 +6,7 @@ use std::fmt::{Write, self};
 use bit_field::BitField;
 use llvm_ir::{ Instruction, terminator::Terminator };
 use super::error::Error;
+use super::func::Label;
 use super::{PhysicalRegs};
 
 use crate::error;
@@ -56,8 +57,24 @@ impl Program {
         asm_file.write(asm.as_bytes()).unwrap();
     }
 
+
+    fn gen_label(&self, func: &Function) -> Result<(), Error> {
+        let mut inner = func.inner.borrow_mut();
+        for index in 0..func.blocks.len() {
+            let label = Label {
+                llvm_name: func.blocks[index].name.clone(),
+                label_name: format!(".label{}", index)
+            };
+            inner.labels.push(label);
+        }
+        Ok(())
+    }
+
     fn gen_expr(&self, inner: &mut ProgInner, func: &Function) -> Result<(), Error> {
+        let mut index = 0;
         for block in func.blocks.iter() {
+            let asm = format!(".label{}:", index);
+            self.write_asm(asm);
             for inst in block.instrs.iter() {
                 match inst {
                     Instruction::Alloca(alloca) => { self.handle_alloca(inner, func, &alloca)? },
@@ -75,11 +92,13 @@ impl Program {
             }
             let termianl = &block.term;
             match termianl {
-                Terminator::Ret(ret) => {
-                    self.handle_ret(func, &ret)?;
-                }
+                Terminator::Ret(ret) => { self.handle_ret(func, &ret)?; }
+                Terminator::Br(br) => { self.handle_br(func, &br)?; }
+                Terminator::CondBr(condbr) => { self.handle_condbr(inner, func, &condbr)?; }
                 _ => {}
             }
+            self.write_asm("\n\n");
+            index += 1;
         }
 
         Ok(())
@@ -150,8 +169,13 @@ impl CodeGen for Program {
 
             self.write_asm("    # generate expr");
             let inner = unsafe{ &mut *self.inner.get() };
+            self.gen_label(func);
             if let Err(err) = self.gen_expr(inner, func) {
-                error!("{}", err.message);
+                match err {
+                    _ => {
+                        todo!();
+                    }
+                }
             }
             let inner = unsafe{ &mut *self.inner.get() };
             inner.free_all_physical_regs();

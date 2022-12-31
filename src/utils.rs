@@ -26,7 +26,7 @@ pub fn parse_operand(operand: &Operand) -> Option<Op> {
             let constval = &**constref;
             match constval {
                 &Constant::Int{ bits, value} => {
-                    println!("[ConstVal] operand: {:?}", operand);
+                    // println!("[ConstVal] operand: {:?}", operand);
                     return Some(Op::ConstValue(ConstValue::Num(value as usize, (bits / 8) as usize)))
                 },
                 _ => {}

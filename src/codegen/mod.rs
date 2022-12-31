@@ -9,12 +9,14 @@ pub use program::{ Program, ProgInner };
 pub use func::{ Function };
 pub use var::{ Var, Ty, VarValue, VarType };
 pub use reg::{ PhysicalRegs, PhysicalReg };
-use error::Error;
+pub use error::{ Error, Result };
 
+#[derive(Debug)]
 pub enum ConstValue {
     Num(usize, usize)
 }
 
+#[derive(Debug)]
 pub enum Op {
     ConstValue(ConstValue),
     LocalValue(Name)
