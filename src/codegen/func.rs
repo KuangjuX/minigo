@@ -1,7 +1,7 @@
 use llvm_ir::{BasicBlock, name::Name};
 use std::{collections::VecDeque, cell::RefCell};
 
-use crate::ir::VirtualReg;
+use crate::ir::{VirtualReg, RegVar};
 
 use super::{Ty, Var};
 
@@ -82,5 +82,12 @@ impl Function {
     pub(crate) fn add_local_var(&self, var: Var) {
         let mut inner = self.inner.borrow_mut();
         inner.locals.push(var);
+    }
+
+    pub(crate) fn remove_local_var(&self, name: Name) {
+        let mut inner = self.inner.borrow_mut();
+        if let Some(index) = inner.locals.iter().position(|item| item.name == Some(name.clone())){
+            inner.locals.remove(index);
+        }
     }
 }

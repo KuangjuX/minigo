@@ -67,6 +67,9 @@ impl Program {
                     Instruction::Add(add) => { self.handle_add(inner, func, &add)? }
                     Instruction::Sub(sub) => { self.handle_sub(inner, func, &sub)? }
                     Instruction::Mul(mul) => { self.handle_mul(inner, func, &mul)? }
+                    Instruction::SDiv(sdiv) => { self.handle_sdiv(inner, func, &sdiv)? }
+                    Instruction::ICmp(icmp) => { self.handle_icmp(inner, func, &icmp)? }
+                    Instruction::ZExt(zext) => { self.handle_zext(inner, func, &zext)? }
                     _ => {}
                 }
             }

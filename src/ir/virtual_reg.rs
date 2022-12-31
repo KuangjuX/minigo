@@ -91,11 +91,17 @@ impl VirtualReg {
             let mut var = Var::uninit();
             var.name = Some(name);
             var.local_val = Some(VirtualReg::Reg(reg_var.clone()));
-            // println!("var: {:?}", var);
             func.add_local_var(var);
             return Some(reg_var)
         }
         None
+    }
+
+    pub(crate) fn insert_virt_reg_var(prog_inner: &mut ProgInner, func: &Function, name: Name, reg_var: RegVar) {
+        let mut var = Var::uninit();
+        var.name = Some(name);
+        var.local_val = Some(VirtualReg::Reg(reg_var.clone()));
+        func.add_local_var(var);
     }
 
     pub fn optimized_allocate_virt_reg() -> Self {

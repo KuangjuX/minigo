@@ -14,7 +14,7 @@ LLC 		= llc-10
 QEMU		= qemu-riscv64
 
 TEST		= testcases
-PROG 		?= add_sub_mul_div_mod
+PROG 		?= icmp
 TESTELF		= $(TEST)/$(PROG)
 TESTASM     = $(TESTELF).S
 TESTPROG	= $(TESTELF).c
@@ -26,6 +26,8 @@ OBJS 		= $(wildcard $(TEST)/*.o)
 ELFS 		= $(TEST)/test $(TEST)hello_world
 
 TEST_LL		= test.ll
+
+TEST_SRCS = $(wildcard $(TEST)/*.c)
 
 
 ifeq ($(TARGET),riscv64)

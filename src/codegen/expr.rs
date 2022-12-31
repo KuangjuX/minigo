@@ -1,6 +1,8 @@
+use std::clone;
+
 use super::{ Program, Op, Function, Error, ConstValue, ProgInner, Var };
-use llvm_ir::Name;
-use llvm_ir::instruction::{Xor, Load, Store, Alloca, Add, Sub, Mul};
+use llvm_ir::{Name, IntPredicate};
+use llvm_ir::instruction::{Xor, Load, Store, Alloca, Add, Sub, Mul, SDiv, ICmp, ZExt};
 use llvm_ir::terminator::Ret;
 use crate::utils::{ parse_operand, parse_type, parse_operand_2 };
 use crate::ir::{VirtualReg, StackVar};
@@ -210,38 +212,171 @@ impl Program {
         Ok(())
     }
 
-         /// handle mul instruction
-         pub(crate) fn handle_mul(&self, prog_inner: &mut ProgInner, func: &Function, inst: &Mul) -> Result<(), Error> {
-            let op0 = &inst.operand0;
-            let op1 = &inst.operand1;
-            let dest = &inst.dest;
-            let dest_reg_var = VirtualReg::allocate_virt_reg_var(prog_inner, func, dest.clone()).ok_or(Error::new("Fail to allocate reg var"))?;
-            match parse_operand_2(op0, op1) {
-                Some((ans1, ans2)) => {
-                    match (ans1, ans2) {
-                        (Op::LocalValue(loc1), Op::LocalValue(loc2)) => {
-                            let var1 = func.find_local_var(loc1).ok_or(Error::new("Fail to find var"))?;
-                            let var2 = func.find_local_var(loc2).ok_or(Error::new("Fail to find var"))?;
-                            match (var1, var2) {
-                                (VirtualReg::Stack(stack1), VirtualReg::Stack(stack2)) => {
-                                    todo!();
-                                },
-                                (VirtualReg::Reg(reg1), VirtualReg::Reg(reg2)) => {
-                                    let asm = format!("    mul {}, {}, {}", dest_reg_var.name, reg1.name, reg2.name);
-                                    self.write_asm(asm);
-                                },
-                                _ => { todo!() }
-                            }
-    
+    /// handle mul instruction
+    pub(crate) fn handle_mul(&self, prog_inner: &mut ProgInner, func: &Function, inst: &Mul) -> Result<(), Error> {
+    let op0 = &inst.operand0;
+    let op1 = &inst.operand1;
+    let dest = &inst.dest;
+    let dest_reg_var = VirtualReg::allocate_virt_reg_var(prog_inner, func, dest.clone()).ok_or(Error::new("Fail to allocate reg var"))?;
+    match parse_operand_2(op0, op1) {
+        Some((ans1, ans2)) => {
+            match (ans1, ans2) {
+                (Op::LocalValue(loc1), Op::LocalValue(loc2)) => {
+                    let var1 = func.find_local_var(loc1).ok_or(Error::new("Fail to find var"))?;
+                    let var2 = func.find_local_var(loc2).ok_or(Error::new("Fail to find var"))?;
+                    match (var1, var2) {
+                        (VirtualReg::Stack(stack1), VirtualReg::Stack(stack2)) => {
+                            todo!();
                         },
-                        _ => {}
+                        (VirtualReg::Reg(reg1), VirtualReg::Reg(reg2)) => {
+                            let asm = format!("    mul {}, {}, {}", dest_reg_var.name, reg1.name, reg2.name);
+                            self.write_asm(asm);
+                        },
+                        _ => { todo!() }
                     }
+
                 },
-                None => return Err(Error::new("Fail to parse operand"))
+                _ => {}
             }
-            Ok(())
-        }
+        },
+        None => return Err(Error::new("Fail to parse operand"))
+    }
+    Ok(())
+}
+
+    /// handle sdiv instruction
+    pub(crate) fn handle_sdiv(&self, prog_inner: &mut ProgInner, func: &Function, inst: &SDiv) -> Result<(), Error> {
+        let op0 = &inst.operand0;
+        let op1 = &inst.operand1;
+        let dest = &inst.dest;
+        let dest_reg_var = VirtualReg::allocate_virt_reg_var(prog_inner, func, dest.clone()).ok_or(Error::new("Fail to allocate reg var"))?;
+        match parse_operand_2(op0, op1) {
+            Some((ans1, ans2)) => {
+                match (ans1, ans2) {
+                    (Op::LocalValue(loc1), Op::LocalValue(loc2)) => {
+                        let var1 = func.find_local_var(loc1).ok_or(Error::new("Fail to find var"))?;
+                        let var2 = func.find_local_var(loc2).ok_or(Error::new("Fail to find var"))?;
+                        match (var1, var2) {
+                            (VirtualReg::Stack(stack1), VirtualReg::Stack(stack2)) => {
+                                todo!();
+                            },
+                            (VirtualReg::Reg(reg1), VirtualReg::Reg(reg2)) => {
+                                let asm = format!("    div {}, {}, {}", dest_reg_var.name, reg1.name, reg2.name);
+                                self.write_asm(asm);
+                            },
+                            _ => { todo!() }
+                        }
     
+                    },
+                    _ => {}
+                }
+            },
+            None => return Err(Error::new("Fail to parse operand"))
+        }
+        Ok(())
+    }
+
+    /// handle icmp instruction
+    pub(crate) fn handle_icmp(&self, prog_inner: &mut ProgInner, func: &Function, inst: &ICmp) -> Result<(), Error> {
+        let predicate = &inst.predicate;
+        let op0 = &inst.operand0;
+        let op1 = &inst.operand1;
+        let dest = &inst.dest;
+        let dest_reg_var = VirtualReg::allocate_virt_reg_var(prog_inner, func, dest.clone()).ok_or(Error::new("Fail to allocate reg var"))?;
+        match parse_operand_2(op0, op1) {
+            Some((ans1, ans2)) => {
+                match (ans1, ans2) {
+                    (Op::LocalValue(loc1), Op::LocalValue(loc2)) => {
+                        let var1 = func.find_local_var(loc1).ok_or(Error::new("Fail to find var"))?;
+                        let var2 = func.find_local_var(loc2).ok_or(Error::new("Fail to find var"))?;
+                        match (var1, var2) {
+                            (VirtualReg::Stack(stack1), VirtualReg::Stack(stack2)) => {
+                                todo!();
+                            },
+                            (VirtualReg::Reg(reg1), VirtualReg::Reg(reg2)) => {
+                                match predicate {
+                                    IntPredicate::EQ => {
+                                        let name = Name::Name(Box::new(String::from("temp")));
+                                        let temp_reg;
+                                        if !func.local_var_exist(name.clone()) {
+                                            temp_reg = VirtualReg::allocate_virt_reg_var(prog_inner, func, name.clone()).ok_or(Error::new("Fail to allocate register"))?;
+                                            
+                                        }else{
+                                            let local_var = func.find_local_var(name).ok_or(Error::new("Fail to find reg"))?;
+                                            match local_var {
+                                                VirtualReg::Reg(reg) => { temp_reg = reg },
+                                                VirtualReg::Stack(stack) => { todo!() }
+                                            }
+                                        }
+                                        let asm = format!("\txor {}, {}, {}", temp_reg.name, reg1.name, reg2.name);
+                                        self.write_asm(asm);
+                                        let asm = format!("\tseqz {}, {}", dest_reg_var.name, temp_reg.name);
+                                        self.write_asm(asm);
+                                    },
+                                    IntPredicate::NE => {
+
+                                    },
+                                    IntPredicate::SGE => {
+
+                                    },
+                                    IntPredicate::SGT => {
+
+                                    },
+                                    IntPredicate::SLT => {
+
+                                    },
+                                    IntPredicate::UGE => {
+
+                                    },
+                                    IntPredicate::UGT => {
+
+                                    },
+                                    IntPredicate::ULE => {
+
+                                    },
+                                    IntPredicate::ULT => {
+
+                                    },
+                                    _ => {}
+                                }
+                            },
+                            _ => { todo!() }
+                        }
+    
+                    },
+                    _ => {}
+                }
+            },
+            None => return Err(Error::new("Fail to parse operand"))
+        }
+        Ok(())
+    } 
+
+    /// handle zext
+    pub(crate) fn handle_zext(&self, prog_inner: &mut ProgInner, func: &Function, inst: &ZExt) -> Result<(), Error> {
+        let dest = &inst.dest;
+        let op = &inst.operand;
+        if let Some(op) = parse_operand(op) {
+            match op {
+                Op::LocalValue(name) => {
+                    let var = func.find_local_var(name.clone()).ok_or(Error::new("Fail to find var"))?;
+                    match var {
+                        VirtualReg::Reg(reg) => {
+                            func.remove_local_var(name.clone());
+                            VirtualReg::insert_virt_reg_var(prog_inner, func, dest.clone(), reg);
+                        },
+                        VirtualReg::Stack(stack) => {
+                            todo!()
+                        }
+                    }
+                }
+                Op::ConstValue(num) => { panic!() }
+            }
+        }else{
+            panic!()
+        }
+        Ok(())
+    }
 
 
     /// handle ret instruction

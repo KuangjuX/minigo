@@ -45,10 +45,23 @@ target remote localhost:1234
   
 We suppply some test examples under testcases directory
 
+## Supported Instructions:
+- `ret` instruction
+- `xor` instruction
+- `add` instruction
+- `sub` instruction
+- `mul` instruction
+- `sdiv` instruction
+- `alloca` instruction
+- `load` instruction
+- `store` instruction
+- `icmp` instruction
+
+
 ## RoadMap
 - [x] Return `main` function
 - [x] Unary Experssions
-- [ ] Add, Sub, Mul, Div,Mod
+- [x] Add, Sub, Mul, Div,Mod
 - [ ] Compare && Logical Experssions
 - [ ] Local Variables and Assignment
 - [ ] Conditional Expressions
