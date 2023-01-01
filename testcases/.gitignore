@@ -1,4 +1,2 @@
-test
-hello_world
-unary
-many_registers
+*.exe
+*.bc

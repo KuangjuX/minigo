@@ -1,4 +1,4 @@
-# MinimalGo
+# minigo
 
 ## Introduction
 

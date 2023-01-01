@@ -3,18 +3,6 @@
 version = 3
 
 [[package]]
-name = "MinimalGo"
-version = "0.1.0"
-dependencies = [
- "bit_field",
- "lazy_static",
- "llvm-ir",
- "log4rs",
- "serde",
- "serde_json",
-]
-
-[[package]]
 name = "aho-corasick"
 version = "0.7.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -182,9 +170,9 @@ checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
 
 [[package]]
 name = "libc"
-version = "0.2.132"
+version = "0.2.139"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8371e4e5341c3a96db127eb2465ac681ced4c433e01dd0e938adbef26ba93ba5"
+checksum = "201de327520df007757c1f0adce6e827fe8562fbc28bfd9c15571c66ca1f5f79"
 
 [[package]]
 name = "linked-hash-map"
@@ -273,6 +261,18 @@ name = "memchr"
 version = "2.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2dffe52ecf27772e601905b7522cb4ef790d2cc203488bbd0e2fe85fcb74566d"
+
+[[package]]
+name = "minigo"
+version = "0.1.0"
+dependencies = [
+ "bit_field",
+ "lazy_static",
+ "llvm-ir",
+ "log4rs",
+ "serde",
+ "serde_json",
+]
 
 [[package]]
 name = "num-integer"
