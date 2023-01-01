@@ -14,6 +14,7 @@
 
 pub type Result<T> = std::result::Result<T, Error>;
 
+#[derive(Debug)]
 pub enum Error {
     RegAllocateErr{ err: String },
     RegNotFoundErr{ err: String },

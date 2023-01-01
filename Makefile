@@ -14,7 +14,7 @@ LLC 		= llc-10
 QEMU		= qemu-riscv64
 
 TEST		= testcases
-PROG 		?= icmp
+PROG 		?= if
 TESTELF		= $(TEST)/$(PROG)
 TESTASM     = $(TESTELF).S
 TESTPROG	= $(TESTELF).c
@@ -50,17 +50,17 @@ endif
 build:
 	@cargo build
 
-run: 
+run: gen_bc
 	@RUST_BACKTRACE=1 PROG=$(PROG) cargo run $(FEATURES) 
 
 exe:
 	@$(AS) -c main.S -o main
 	@$(QEMU) main
 
-gen_ir:
+gen_ir: 
 	@$(CLANG) -S -O0 -emit-llvm --target=riscv64-unknown-linux-gnu $(TESTPROG)
 
-gen_bc:
+gen_bc: gen_ir
 	@$(LLVM_AS) $(PROG).ll -o $(PROG).bc
 
 llc:

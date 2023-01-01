@@ -173,7 +173,7 @@ impl CodeGen for Program {
             if let Err(err) = self.gen_expr(inner, func) {
                 match err {
                     _ => {
-                        todo!();
+                        panic!("{:?}", err);
                     }
                 }
             }

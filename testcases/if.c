@@ -1,5 +1,6 @@
 int main() {
     int a = 10;
-    if(a == 10){ return 1; }
+    int b = 10;
+    if(a == b){ return 1; }
     else{ return 0; }
 }

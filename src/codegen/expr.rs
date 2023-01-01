@@ -433,11 +433,17 @@ impl Program {
         let false_dest = func.find_label(false_dest.clone()).ok_or(Error::LabelNotFoundErr{ err: format!("Fail to find label {:?}", false_dest.clone())})?;
         if let Some(condvar) = parse_operand(condvar) {
             match condvar {
-                Op::LocalValue(reg) => {
-                    let asm = format!("\tbne {}, zero, {}", reg, true_dest.label_name);
-                    self.write_asm(asm);
-                    let asm = format!("j {}", false_dest.label_name);
-                    self.write_asm(asm)
+                Op::LocalValue(llvm_reg) => {
+                    let phy_reg = func.find_local_var(llvm_reg.clone()).ok_or(Error::RegNotFoundErr{ err: format!("Fail to find reg {}", llvm_reg)})?;
+                    if let VirtualReg::Reg(reg) = phy_reg {
+                        let asm = format!("\tbne {}, zero, {}", reg.name, true_dest.label_name);
+                        self.write_asm(asm);
+                        let asm = format!("\tj {}", false_dest.label_name);
+                        self.write_asm(asm);
+                        return Ok(())
+                    }else{
+                        return Err(Error::new(format!("Unexpected variable type, {:?}", llvm_reg)));
+                    }
                 },
                 _ => { return Err(Error::new(format!("Unexpected local variable type, {:?}", condvar)));}
             }
