@@ -9,7 +9,6 @@ use super::error::Error;
 use super::func::Label;
 use super::{PhysicalRegs};
 
-use crate::error;
 
 // use crate::arch::Instruction;
 use super::{Function, VarValue, Ty};
@@ -86,6 +85,7 @@ impl Program {
                     Instruction::SDiv(sdiv) => { self.handle_sdiv(inner, func, &sdiv)? }
                     Instruction::ICmp(icmp) => { self.handle_icmp(inner, func, &icmp)? }
                     Instruction::ZExt(zext) => { self.handle_zext(inner, func, &zext)? }
+                    Instruction::Call(call) => { self.handle_call(inner, func, &call)? }
                     _ => {}
                 }
             }

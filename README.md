@@ -2,7 +2,7 @@
 
 ## Introduction
 
-MinimalGo is a minimal go compiler. MinimalGo compiler backend is written by Rust, it receive llvm ir as input and translate them into RISC -V assembly. It is deeply inspired by [chibicc](https://github.com/rui314/chibicc).  
+minigo is a minimal go compiler. minigo compiler backend is written by Rust, it receive llvm ir as input and translate them into RISC -V assembly. It is deeply inspired by [chibicc](https://github.com/rui314/chibicc).  
   
 In this project, compiler backend will receive llvm-10 file and translate them into RISC -V asembly and `riscv64-unknown-elf-as` will turn assemble file into elf file. `qemu-riscv64` will enumlate RISC -V Environment to run elf.
 
@@ -57,17 +57,18 @@ We suppply some test examples under testcases directory
 - `store` instruction
 - `icmp` instruction
 - `br` instruction
+- `zext` instruction
 
 
 ## RoadMap
 - [x] Return `main` function
 - [x] Unary Experssions
 - [x] Add, Sub, Mul, Div,Mod
-- [ ] Compare && Logical Experssions
+- [x] Compare && Logical Experssions
 - [ ] Local Variables and Assignment
-- [ ] Conditional Expressions
+- [x] Conditional Expressions
 - [ ] Scope && Block Statements
-- [ ] Loop Statement
+- [x] Loop Statement
 - [ ] Functions
 - [x] Global Variables
 - [ ] Array

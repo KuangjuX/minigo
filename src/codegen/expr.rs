@@ -1,6 +1,6 @@
 use super::{ Program, Op, Function, Result, Error, ConstValue, ProgInner, Var, func };
 use llvm_ir::{Name, IntPredicate};
-use llvm_ir::instruction::{Xor, Load, Store, Alloca, Add, Sub, Mul, SDiv, ICmp, ZExt};
+use llvm_ir::instruction::{Xor, Load, Store, Alloca, Add, Sub, Mul, SDiv, ICmp, ZExt, Call};
 use llvm_ir::terminator::{Ret, Br, CondBr};
 use crate::utils::{ parse_operand, parse_type, parse_operand_2 };
 use crate::ir::{VirtualReg, StackVar};
@@ -503,5 +503,9 @@ impl Program {
             }
         }
         Err(Error::ParseErr{ err: format!("Fail to found parse {:?}", condvar)})
+    }
+
+    pub(crate) fn handle_call(&self, prog_inner: &mut ProgInner, func: &Function, inst: &Call) -> Result<()> {
+        todo!()
     }
 }
