@@ -315,30 +315,33 @@ impl Program {
                                         self.write_asm(asm);
                                     },
                                     IntPredicate::NE => {
-
-                                    },
-                                    IntPredicate::SGE => {
-
+                                        let help_reg = prog_inner.get_help_reg();
+                                        let asm = format!("\txor {}, {}, {}", help_reg.name, reg1.name, reg2.name);
+                                        self.write_asm(asm);
+                                        let asm = format!("\tsnez {}, {}", dest_reg_var.name, help_reg.name);
+                                        self.write_asm(asm);
                                     },
                                     IntPredicate::SGT => {
-
+                                        let asm = format!("\tslt {}, {}, {}", dest_reg_var.name, reg2.name, reg1.name);
+                                        self.write_asm(asm);
+                                    },
+                                    IntPredicate::SGE => {
+                                        let asm = format!("\tslt {}, {}, {}", dest_reg_var.name, reg2.name, reg1.name);
+                                        self.write_asm(asm);
+                                        let asm = format!("\txori {}, {}, 1", dest_reg_var.name, dest_reg_var.name);
+                                        self.write_asm(asm);
                                     },
                                     IntPredicate::SLT => {
-
+                                        let asm = format!("\tslt {}, {}, {}", dest_reg_var.name, reg1.name, reg2.name);
+                                        self.write_asm(asm);
                                     },
-                                    IntPredicate::UGE => {
-
-                                    },
-                                    IntPredicate::UGT => {
-
-                                    },
-                                    IntPredicate::ULE => {
-
-                                    },
-                                    IntPredicate::ULT => {
-
-                                    },
-                                    _ => {}
+                                    IntPredicate::SLE => {
+                                        let asm = format!("\tslt {}, {}, {}", dest_reg_var.name, reg1.name, reg2.name);
+                                        self.write_asm(asm);
+                                        let asm = format!("\txori {}, {}, 1", dest_reg_var.name, dest_reg_var.name);
+                                        self.write_asm(asm);
+                                    }
+                                    _ => { todo!() }
                                 }
                             },
                             _ => { todo!() }
@@ -350,8 +353,43 @@ impl Program {
                         match var {
                             VirtualReg::Reg(reg) => {
                                 let ConstValue::Num(num, _) = val;
-                                let asm = format!("\tslti {}, {}, {}", dest_reg_var.name, reg.name, num);
-                                self.write_asm(asm);
+                                match predicate {
+                                    IntPredicate::EQ => {
+                                        let help_reg = prog_inner.get_help_reg();
+                                        let asm = format!("\txori {}, {}, {}", help_reg.name, reg.name, num);
+                                        self.write_asm(asm);
+                                        let asm = format!("\tseqz {}, {}", dest_reg_var.name, help_reg.name);
+                                        self.write_asm(asm);
+                                    },
+                                    IntPredicate::NE => {
+                                        let help_reg = prog_inner.get_help_reg();
+                                        let asm = format!("\txori {}, {}, {}", help_reg.name, reg.name, num);
+                                        self.write_asm(asm);
+                                        let asm = format!("\tsnez {}, {}", dest_reg_var.name, help_reg.name);
+                                        self.write_asm(asm);
+                                    }
+                                    IntPredicate::SGT => {
+                                        let asm = format!("\tslti {}, {}, {}", dest_reg_var.name, num, reg.name);
+                                        self.write_asm(asm);
+                                    }
+                                    IntPredicate::SGE => {
+                                        let asm = format!("\tslti {}, {}, {}", dest_reg_var.name, num, reg.name);
+                                        self.write_asm(asm);
+                                        let asm = format!("\txori {}, {}, 1", dest_reg_var.name, dest_reg_var.name);
+                                        self.write_asm(asm);
+                                    }
+                                    IntPredicate::SLT => {
+                                        let asm = format!("\tslti {}, {}, {}", dest_reg_var.name, reg.name, num);
+                                        self.write_asm(asm);
+                                    },
+                                    IntPredicate::SLE => {
+                                        let asm = format!("\tslti {}, {}, {}", dest_reg_var.name, reg.name, num);
+                                        self.write_asm(asm);
+                                        let asm = format!("\txori {}, {}, 1", dest_reg_var.name, dest_reg_var.name);
+                                        self.write_asm(asm);
+                                    }
+                                    _ => { todo!() }
+                                }
                             },
                             VirtualReg::Stack(stack) => {
                                 todo!()
