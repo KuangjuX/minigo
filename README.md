@@ -58,6 +58,7 @@ We suppply some test examples under testcases directory
 - `icmp` instruction
 - `br` instruction
 - `zext` instruction
+- `call` instruction
 
 
 ## RoadMap
@@ -72,6 +73,11 @@ We suppply some test examples under testcases directory
 - [ ] Functions
 - [x] Global Variables
 - [ ] Array
+
+## TODO
+- [ ] register allocation
+- [ ] many parameters function call
+- [ ] labels generator
 
 ## References:
 - [chibicc](https://github.com/rui314/chibicc)
