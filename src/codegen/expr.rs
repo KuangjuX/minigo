@@ -93,21 +93,10 @@ impl Program {
                         let addr = stack_var.addr;
                         match constval {
                             ConstValue::Num(val, _) => {
-                                let name = Name::Name(Box::new(String::from("temp")));
-                                let temp_reg;
-                                if !func.local_var_exist(name.clone()) {
-                                    temp_reg = VirtualReg::allocate_virt_reg_var(prog_inner, func, name.clone()).ok_or(Error::new("Fail to allocate register"))?;
-                                    
-                                }else{
-                                    let local_var = func.find_local_var(name).ok_or(Error::new("Fail to find reg"))?;
-                                    match local_var {
-                                        VirtualReg::Reg(reg) => { temp_reg = reg },
-                                        VirtualReg::Stack(stack) => { todo!() }
-                                    }
-                                }
-                                let asm = format!("    addi {}, zero, {}", temp_reg.name, val);
+                                let help_reg = prog_inner.get_help_reg();
+                                let asm = format!("    addi {}, zero, {}", help_reg.name, val);
                                 self.write_asm(asm);
-                                let asm = format!("    sd {}, -{}(fp)", temp_reg.name, addr);
+                                let asm = format!("    sd {}, -{}(fp)", help_reg.name, addr);
                                 self.write_asm(asm)
                             }
                         }
@@ -294,21 +283,10 @@ impl Program {
                             (VirtualReg::Reg(reg1), VirtualReg::Reg(reg2)) => {
                                 match predicate {
                                     IntPredicate::EQ => {
-                                        let name = Name::Name(Box::new(String::from("temp")));
-                                        let temp_reg;
-                                        if !func.local_var_exist(name.clone()) {
-                                            temp_reg = VirtualReg::allocate_virt_reg_var(prog_inner, func, name.clone()).ok_or(Error::new("Fail to allocate register"))?;
-                                            
-                                        }else{
-                                            let local_var = func.find_local_var(name).ok_or(Error::new("Fail to find reg"))?;
-                                            match local_var {
-                                                VirtualReg::Reg(reg) => { temp_reg = reg },
-                                                VirtualReg::Stack(stack) => { todo!() }
-                                            }
-                                        }
-                                        let asm = format!("\txor {}, {}, {}", temp_reg.name, reg1.name, reg2.name);
+                                        let help_reg = prog_inner.get_help_reg();
+                                        let asm = format!("\txor {}, {}, {}", help_reg.name, reg1.name, reg2.name);
                                         self.write_asm(asm);
-                                        let asm = format!("\tseqz {}, {}", dest_reg_var.name, temp_reg.name);
+                                        let asm = format!("\tseqz {}, {}", dest_reg_var.name, help_reg.name);
                                         self.write_asm(asm);
                                     },
                                     IntPredicate::NE => {
@@ -418,7 +396,7 @@ impl Program {
     pub(crate) fn handle_br(&self, func: &Function, inst: &Br) -> Result<()> {
         let llvm_name = inst.dest.clone();
         if let Some(label) = func.find_label(llvm_name.clone()) {
-            let asm = format!("j {}", label.label_name);
+            let asm = format!("\tj {}", label.label_name);
             self.write_asm(asm);
             return Ok(())
         }

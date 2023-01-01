@@ -38,7 +38,7 @@ qemu-riscv64 -g 1234 testcases/{ELF}
 
 **Other Terminal:**
 ```shell
-riscv64-unknown-elf-gdb testcases/{E:F}
+riscv64-unknown-elf-gdb testcases/{ELF}
 target remote localhost:1234
 ```
 
@@ -56,6 +56,7 @@ We suppply some test examples under testcases directory
 - `load` instruction
 - `store` instruction
 - `icmp` instruction
+- `br` instruction
 
 
 ## RoadMap

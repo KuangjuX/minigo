@@ -15,6 +15,10 @@ impl ProgInner {
     pub(crate) fn free_all_physical_regs(&mut self) {
         self.regs.free_all_physical_regs();
     }
+
+    pub(crate) fn get_help_reg(&self) -> &PhysicalReg {
+        self.regs.get_help_physical_reg()
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -25,7 +29,8 @@ pub struct PhysicalReg {
 }
 
 pub struct PhysicalRegs {
-    regs: Vec<PhysicalReg>
+    regs: Vec<PhysicalReg>,
+    help_reg: PhysicalReg
 }
 
 impl PhysicalRegs {
@@ -40,7 +45,12 @@ impl PhysicalRegs {
             regs.push(reg);
         }
         Self{
-            regs
+            regs,
+            help_reg: PhysicalReg {
+                allocated: false,
+                index: 0,
+                name: String::from("a0")
+            }
         }
     }
 
@@ -70,5 +80,9 @@ impl PhysicalRegs {
                 reg.allocated = false
             }
         }
+    }
+
+    pub(crate) fn get_help_physical_reg(&self) -> &PhysicalReg {
+        &self.help_reg
     }
 }
