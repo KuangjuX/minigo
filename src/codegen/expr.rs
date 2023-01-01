@@ -3,8 +3,8 @@ use llvm_ir::{Name, IntPredicate};
 use llvm_ir::instruction::{Xor, Load, Store, Alloca, Add, Sub, Mul, SDiv, ICmp, ZExt, Call};
 use llvm_ir::terminator::{Ret, Br, CondBr};
 use crate::codegen::reg::CALLER_SAVED_REGS;
-use crate::utils::{ parse_operand, parse_type, parse_operand_2};
-use crate::ir::{VirtualReg, StackVar};
+use crate::utils::{ parse_operand, parse_operand_2};
+use crate::ir::{VirtualReg};
 
 impl Program {
     pub(crate) fn handle_alloca(&self, prog_inner: &mut ProgInner, func: &Function, inst: &Alloca) -> Result<()> {
@@ -115,7 +115,6 @@ impl Program {
             Some((Op::LocalValue(op1), Op::LocalValue(op2))) => {
                 let var1 = func.find_local_var(op1).ok_or(Error::new("Fail to find local var"))?;
                 let var2 = func.find_local_var(op2).ok_or(Error::new("Fail to find local var"))?;
-                // println!("var1: {:?}, var2: {:?}", var1, var2);
                 match (var1, var2) {
                     (VirtualReg::Stack(stack), VirtualReg::Reg(reg)) => {
                         let addr = stack.addr;
@@ -529,8 +528,7 @@ impl Program {
 
         // STEP1: 首先，保存 caller-saved 寄存器
         // 计算 caller-saved 寄存器所占的栈空间
-        println!("[Debug] call: {:?}", inst);
-        let space = 8 * CALLER_SAVED_REGS.len();
+        let space: isize = 8 * CALLER_SAVED_REGS.len() as isize;
         // 将栈顶指针下移
         let asm = format!("\taddi sp, sp, -{}", space);
         self.write_asm(asm);
@@ -541,6 +539,8 @@ impl Program {
             self.write_asm(asm);
             index += 8;
         }
+        // 修改函数栈空间大小
+        func.add_stack_size(space as isize);
 
         // STEP2: 将参数放在 a0 - a7 寄存器中，如果还有其他参数，则以从右向左的顺序压栈
         // 第 9 个参数在栈顶位置
@@ -551,7 +551,7 @@ impl Program {
                 if let Some(op) = parse_operand(arg) {
                     match op {
                         Op::LocalValue(name) => {
-    
+                            todo!()
                         },
                         Op::ConstValue(val) => {
                             if let ConstValue::Num(num, _) = val {
@@ -567,16 +567,42 @@ impl Program {
                 index += 1;
             }
         }else{
-            todo!()
+            // 将所有参数全部放在栈里
+            // 扩展栈空间
+            let size = 8 * len as isize;
+            let asm = format!("addi sp, sp, -{}", size);
+            self.write_asm(asm);
+            func.add_stack_size(size);
+            for (arg, _) in inst.arguments.iter() {
+                if let Some(op) = parse_operand(arg) {
+                    match op {
+                        Op::LocalValue(name) => {
+                            todo!()
+                        },
+                        Op::ConstValue(val) => {
+                            // 目前只考虑参数是数字的情况
+                            match val {
+                                ConstValue::Num(num,_) => {
+                                    let asm = format!("sd {}, {}(sp)", num, index * 8);
+                                    self.write_asm(asm);
+                                },
+                                _ => { todo!() }
+                            }
+                            
+                        }
+                    }
+                }
+                index += 1;
+            }
         }
+
 
         // STEP3: 调用 call 指令
         let dest = inst.dest.clone().ok_or(Error::new("[Call] Fail to get target register"))?;
         // 分配物理寄存器
         let dest_reg_var = VirtualReg::allocate_virt_reg_var(prog_inner, func, dest.clone()).ok_or(Error::new("Fail to allocate reg var"))?;
-        let func = inst.function.clone().right().unwrap();
-        println!("[Debug] func: {:?}", func);
-        if let Some(func) = parse_operand(&func) {
+        let func_op = inst.function.clone().right().unwrap();
+        if let Some(func) = parse_operand(&func_op) {
             match func {
                 Op::ConstValue(val) => {
                     match val {
@@ -599,7 +625,7 @@ impl Program {
                 _ => { panic!() }
             }
         }else{
-            return Err(Error::ParseErr{ err: format!("[Call] Fail to parse function {:?}", func)})
+            return Err(Error::ParseErr{ err: format!("[Call] Fail to parse function {:?}", func_op)})
         }
         // 获取函数返回值
         let asm = format!("\tmv {}, a0", dest_reg_var.name);
@@ -615,6 +641,7 @@ impl Program {
         // 修改栈顶指针
         let asm = format!("\taddi sp, sp, {}", space);
         self.write_asm(asm);
+        func.add_stack_size(-space as isize);
 
         Ok(())
     }

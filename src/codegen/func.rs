@@ -90,6 +90,15 @@ impl Function {
         inner.stack_size
     }
 
+    pub fn add_stack_size(&self, size: isize) {
+        let mut inner = self.inner.borrow_mut();
+        if size > 0 {
+            inner.stack_size += size as usize;
+        }else{
+            inner.stack_size -= -size as usize;
+        }
+    }
+
     /// push local variable into vec
     pub(crate) fn add_local_var(&self, var: Var) {
         let mut inner = self.inner.borrow_mut();
@@ -105,7 +114,7 @@ impl Function {
     }
 
     pub(crate) fn find_label(&self, name: Name) -> Option<Label> {
-        let mut inner = self.inner.borrow();
+        let inner = self.inner.borrow();
         for item in inner.labels.iter() {
             if item.llvm_name == name {
                 return Some(item.clone())
