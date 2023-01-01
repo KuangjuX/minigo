@@ -1,5 +1,15 @@
 use super::{  ProgInner };
 
+pub static CALLER_SAVED_REGS: [&str; 16] = [
+    "ra", "t0", "t1", "t2", "t3", "t4", "t5", "t6",
+    "a0", "a1","a2", "a3", "a4", "a5", "a6", "a7",
+];
+
+pub static CALLEE_SAVED_REGD: [&str; 13] = [
+    "sp", "fp", "s1", "s2", "s3", "s4", "s5", "s6",
+    "s7", "s8", "s9", "s10", "s11"
+];
+
 impl ProgInner {
     pub(crate) fn allocate_physical_reg(&mut self) -> Option<PhysicalReg> {
         if let Some(reg) = self.regs.find_free_reg() {

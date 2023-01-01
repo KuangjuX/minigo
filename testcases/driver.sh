@@ -43,3 +43,7 @@ check if
 qemu-riscv64  testcases/while.exe
 [ "$?" = 0 ]
 check while
+
+qemu-riscv64  testcases/call.exe
+[ "$?" = 42 ]
+check call

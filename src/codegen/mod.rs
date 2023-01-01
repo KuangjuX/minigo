@@ -13,7 +13,8 @@ pub use error::{ Error, Result };
 
 #[derive(Debug)]
 pub enum ConstValue {
-    Num(usize, usize)
+    Num(usize, usize),
+    Ref(Name)
 }
 
 #[derive(Debug)]

@@ -71,8 +71,10 @@ impl Program {
     fn gen_expr(&self, inner: &mut ProgInner, func: &Function) -> Result<(), Error> {
         let mut index = 0;
         for block in func.blocks.iter() {
-            let asm = format!(".label{}:", index);
-            self.write_asm(asm);
+            if index != 0 {
+                let asm = format!(".label{}:", index);
+                self.write_asm(asm);
+            }
             for inst in block.instrs.iter() {
                 match inst {
                     Instruction::Alloca(alloca) => { self.handle_alloca(inner, func, &alloca)? },

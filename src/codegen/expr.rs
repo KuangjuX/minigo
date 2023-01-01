@@ -2,7 +2,8 @@ use super::{ Program, Op, Function, Result, Error, ConstValue, ProgInner, Var, f
 use llvm_ir::{Name, IntPredicate};
 use llvm_ir::instruction::{Xor, Load, Store, Alloca, Add, Sub, Mul, SDiv, ICmp, ZExt, Call};
 use llvm_ir::terminator::{Ret, Br, CondBr};
-use crate::utils::{ parse_operand, parse_type, parse_operand_2 };
+use crate::codegen::reg::CALLER_SAVED_REGS;
+use crate::utils::{ parse_operand, parse_type, parse_operand_2};
 use crate::ir::{VirtualReg, StackVar};
 
 impl Program {
@@ -60,21 +61,25 @@ impl Program {
         match (parse_operand(op0), parse_operand(op1)) {
             (Some(Op::LocalValue(op1)), Some(Op::ConstValue(op2))) => {
                 // op is local variable, op2 is immediate
-                let ConstValue::Num(imm, _) = op2;
-                let local_var = func.find_local_var(op1).ok_or(Error::new("Fail to find local variable"))?;
-                let dest_reg_var = VirtualReg::allocate_virt_reg_var(prog_inner, func, dest.clone()).ok_or(Error::new("Fail to load reg var"))?;
-                match &local_var {
-                    VirtualReg::Stack(rs1_stack_var) => {
-                        // stack_var
-                        let rs1_reg_var = rs1_stack_var.load_stack_var(self, prog_inner).ok_or(Error::new("Fail to load stack var"))?;
-                        let asm = format!("    xori {}, {}, {}", dest_reg_var.name, rs1_reg_var.name, imm as i32);
-                        self.write_asm(asm);
-                    },
-                    VirtualReg::Reg(rs1_reg_var) => {
-                        let asm = format!("    xori {}, {}, {}", dest_reg_var.name, rs1_reg_var.name, imm as i32);
-                        self.write_asm(asm);
+                if let ConstValue::Num(imm, _) = op2 {
+                    let local_var = func.find_local_var(op1).ok_or(Error::new("Fail to find local variable"))?;
+                    let dest_reg_var = VirtualReg::allocate_virt_reg_var(prog_inner, func, dest.clone()).ok_or(Error::new("Fail to load reg var"))?;
+                    match &local_var {
+                        VirtualReg::Stack(rs1_stack_var) => {
+                            // stack_var
+                            let rs1_reg_var = rs1_stack_var.load_stack_var(self, prog_inner).ok_or(Error::new("Fail to load stack var"))?;
+                            let asm = format!("    xori {}, {}, {}", dest_reg_var.name, rs1_reg_var.name, imm as i32);
+                            self.write_asm(asm);
+                        },
+                        VirtualReg::Reg(rs1_reg_var) => {
+                            let asm = format!("    xori {}, {}, {}", dest_reg_var.name, rs1_reg_var.name, imm as i32);
+                            self.write_asm(asm);
+                        }
                     }
+                }else{
+                    todo!()
                 }
+                
                 Ok(())
             },
             _ => { Err(Error::new("Invalid xor instruction")) }
@@ -98,7 +103,8 @@ impl Program {
                                 self.write_asm(asm);
                                 let asm = format!("    sd {}, -{}(fp)", help_reg.name, addr);
                                 self.write_asm(asm)
-                            }
+                            },
+                            _ => { todo!() }
                         }
                     }
                     VirtualReg::Reg(reg) => {
@@ -172,16 +178,20 @@ impl Program {
                     },
                     (Op::LocalValue(var), Op::ConstValue(val)) => {
                         let var = func.find_local_var(var).ok_or(Error::new("Fail to find var"))?;
-                        let ConstValue::Num(num, _) = val;
-                        match var {
-                            VirtualReg::Reg(reg) => {
-                                let asm = format!("\taddi {}, {}, {}", dest_reg_var.name, reg.name, num);
-                                self.write_asm(asm);
-                            },
-                            VirtualReg::Stack(stack) => {
-                                todo!()
+                        if let ConstValue::Num(num, _) = val {
+                            match var {
+                                VirtualReg::Reg(reg) => {
+                                    let asm = format!("\taddi {}, {}, {}", dest_reg_var.name, reg.name, num);
+                                    self.write_asm(asm);
+                                },
+                                VirtualReg::Stack(stack) => {
+                                    todo!()
+                                }
                             }
+                        }else{
+                            todo!()
                         }
+                        
                     }   
                     _ => {}
                 }
@@ -352,44 +362,48 @@ impl Program {
                         let var = func.find_local_var(var).ok_or(Error::new("Fail to find var"))?;
                         match var {
                             VirtualReg::Reg(reg) => {
-                                let ConstValue::Num(num, _) = val;
-                                match predicate {
-                                    IntPredicate::EQ => {
-                                        let help_reg = prog_inner.get_help_reg();
-                                        let asm = format!("\txori {}, {}, {}", help_reg.name, reg.name, num);
-                                        self.write_asm(asm);
-                                        let asm = format!("\tseqz {}, {}", dest_reg_var.name, help_reg.name);
-                                        self.write_asm(asm);
-                                    },
-                                    IntPredicate::NE => {
-                                        let help_reg = prog_inner.get_help_reg();
-                                        let asm = format!("\txori {}, {}, {}", help_reg.name, reg.name, num);
-                                        self.write_asm(asm);
-                                        let asm = format!("\tsnez {}, {}", dest_reg_var.name, help_reg.name);
-                                        self.write_asm(asm);
+                                if let ConstValue::Num(num, _) = val {
+                                    match predicate {
+                                        IntPredicate::EQ => {
+                                            let help_reg = prog_inner.get_help_reg();
+                                            let asm = format!("\txori {}, {}, {}", help_reg.name, reg.name, num);
+                                            self.write_asm(asm);
+                                            let asm = format!("\tseqz {}, {}", dest_reg_var.name, help_reg.name);
+                                            self.write_asm(asm);
+                                        },
+                                        IntPredicate::NE => {
+                                            let help_reg = prog_inner.get_help_reg();
+                                            let asm = format!("\txori {}, {}, {}", help_reg.name, reg.name, num);
+                                            self.write_asm(asm);
+                                            let asm = format!("\tsnez {}, {}", dest_reg_var.name, help_reg.name);
+                                            self.write_asm(asm);
+                                        }
+                                        IntPredicate::SGT => {
+                                            let asm = format!("\tslti {}, {}, {}", dest_reg_var.name, num, reg.name);
+                                            self.write_asm(asm);
+                                        }
+                                        IntPredicate::SGE => {
+                                            let asm = format!("\tslti {}, {}, {}", dest_reg_var.name, num, reg.name);
+                                            self.write_asm(asm);
+                                            let asm = format!("\txori {}, {}, 1", dest_reg_var.name, dest_reg_var.name);
+                                            self.write_asm(asm);
+                                        }
+                                        IntPredicate::SLT => {
+                                            let asm = format!("\tslti {}, {}, {}", dest_reg_var.name, reg.name, num);
+                                            self.write_asm(asm);
+                                        },
+                                        IntPredicate::SLE => {
+                                            let asm = format!("\tslti {}, {}, {}", dest_reg_var.name, reg.name, num);
+                                            self.write_asm(asm);
+                                            let asm = format!("\txori {}, {}, 1", dest_reg_var.name, dest_reg_var.name);
+                                            self.write_asm(asm);
+                                        }
+                                        _ => { todo!() }
                                     }
-                                    IntPredicate::SGT => {
-                                        let asm = format!("\tslti {}, {}, {}", dest_reg_var.name, num, reg.name);
-                                        self.write_asm(asm);
-                                    }
-                                    IntPredicate::SGE => {
-                                        let asm = format!("\tslti {}, {}, {}", dest_reg_var.name, num, reg.name);
-                                        self.write_asm(asm);
-                                        let asm = format!("\txori {}, {}, 1", dest_reg_var.name, dest_reg_var.name);
-                                        self.write_asm(asm);
-                                    }
-                                    IntPredicate::SLT => {
-                                        let asm = format!("\tslti {}, {}, {}", dest_reg_var.name, reg.name, num);
-                                        self.write_asm(asm);
-                                    },
-                                    IntPredicate::SLE => {
-                                        let asm = format!("\tslti {}, {}, {}", dest_reg_var.name, reg.name, num);
-                                        self.write_asm(asm);
-                                        let asm = format!("\txori {}, {}, 1", dest_reg_var.name, dest_reg_var.name);
-                                        self.write_asm(asm);
-                                    }
-                                    _ => { todo!() }
+                                }else{
+                                    todo!()
                                 }
+                                
                             },
                             VirtualReg::Stack(stack) => {
                                 todo!()
@@ -442,6 +456,7 @@ impl Program {
                             let asm = format!("    li a0, {}", num);
                             self.write_asm(asm);
                         }
+                        _ => { todo!() }
                     }
                 }
                 Some(Op::LocalValue(name)) => {
@@ -506,6 +521,101 @@ impl Program {
     }
 
     pub(crate) fn handle_call(&self, prog_inner: &mut ProgInner, func: &Function, inst: &Call) -> Result<()> {
-        todo!()
+        // 准备参数，完成传参
+        // 保存 caller-saved 寄存器
+        // 执行汇编中的函数调用指令，开始执行子函数直至其返回
+        // 恢复 caller-saved 寄存器
+        // 拿到函数调用的返回值，作为函数调用表达式的值
+
+        // STEP1: 首先，保存 caller-saved 寄存器
+        // 计算 caller-saved 寄存器所占的栈空间
+        println!("[Debug] call: {:?}", inst);
+        let space = 8 * CALLER_SAVED_REGS.len();
+        // 将栈顶指针下移
+        let asm = format!("\taddi sp, sp, -{}", space);
+        self.write_asm(asm);
+        // 保存寄存器
+        let mut index = 0;
+        for reg in CALLER_SAVED_REGS {
+            let asm = format!("\tsd {}, {}(sp)", reg, index);
+            self.write_asm(asm);
+            index += 8;
+        }
+
+        // STEP2: 将参数放在 a0 - a7 寄存器中，如果还有其他参数，则以从右向左的顺序压栈
+        // 第 9 个参数在栈顶位置
+        index = 0;
+        let len = inst.arguments.len();
+        if len <= 7 {
+            for (arg, _) in inst.arguments.iter() {
+                if let Some(op) = parse_operand(arg) {
+                    match op {
+                        Op::LocalValue(name) => {
+    
+                        },
+                        Op::ConstValue(val) => {
+                            if let ConstValue::Num(num, _) = val {
+                                let asm = format!("\taddi a{}, zero, {}", index, 0);
+                                self.write_asm(asm);
+                            }else{
+                                todo!()
+                            }
+                            
+                        }
+                    }
+                }
+                index += 1;
+            }
+        }else{
+            todo!()
+        }
+
+        // STEP3: 调用 call 指令
+        let dest = inst.dest.clone().ok_or(Error::new("[Call] Fail to get target register"))?;
+        // 分配物理寄存器
+        let dest_reg_var = VirtualReg::allocate_virt_reg_var(prog_inner, func, dest.clone()).ok_or(Error::new("Fail to allocate reg var"))?;
+        let func = inst.function.clone().right().unwrap();
+        println!("[Debug] func: {:?}", func);
+        if let Some(func) = parse_operand(&func) {
+            match func {
+                Op::ConstValue(val) => {
+                    match val {
+                        ConstValue::Ref(symbol) => {
+                            match symbol {
+                                Name::Name(symbol) => {
+                                    let asm = format!("\tcall {}", symbol);
+                                    self.write_asm(asm);
+                                },
+                                Name::Number(num) => {
+                                    let asm = format!("\tcall {}", num);
+                                    self.write_asm(asm);
+                                }
+                            }
+                        },
+                        _ => { return Err(Error::new(format!("[Call] Unexpected function type: {:?}",val )))}
+                    }
+                  
+                },
+                _ => { panic!() }
+            }
+        }else{
+            return Err(Error::ParseErr{ err: format!("[Call] Fail to parse function {:?}", func)})
+        }
+        // 获取函数返回值
+        let asm = format!("\tmv {}, a0", dest_reg_var.name);
+        self.write_asm(asm);
+        // 将调用的返回值赋给虚拟寄存器
+        // STEP4: 恢复 caller-saved 寄存器
+        index = 0;
+        for reg in CALLER_SAVED_REGS {
+            let asm = format!("\tld {}, {}(sp)", reg, index);
+            self.write_asm(asm);
+            index += 8;
+        }
+        // 修改栈顶指针
+        let asm = format!("\taddi sp, sp, {}", space);
+        self.write_asm(asm);
+
+        Ok(())
     }
 }

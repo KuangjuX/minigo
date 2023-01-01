@@ -14,7 +14,7 @@ LLC 		= llc-10
 QEMU		= qemu-riscv64
 
 TEST		= testcases
-PROG 		?= icmp
+PROG 		?= call
 TESTELF		= $(TEST)/$(PROG)
 TESTASM     = $(TESTELF).S
 TESTPROG	= $(TESTELF).c
