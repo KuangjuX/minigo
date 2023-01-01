@@ -13,19 +13,19 @@ LLVM_AS		= llvm-as-10
 LLC 		= llc-10
 QEMU		= qemu-riscv64
 
-# TEST		= testcases
-# PROG 		?= if
-# TESTELF		= $(TEST)/$(PROG)
-# TESTASM     = $(TESTELF).S
-# TESTPROG	= $(TESTELF).c
-# TESTOUT     = $(TESTELF).o
+TEST		= testcases
+PROG 		?= while
+TESTELF		= $(TEST)/$(PROG)
+TESTASM     = $(TESTELF).S
+TESTPROG	= $(TESTELF).c
+TESTOUT     = $(TESTELF).o
 
 
-# ASMS  		= $(wildcard $(TEST)/*.S)
-# OBJS 		= $(wildcard $(TEST)/*.o)
-# ELFS 		= $(TEST)/test $(TEST)hello_world
+ASMS  		= $(wildcard $(TEST)/*.S)
+OBJS 		= $(wildcard $(TEST)/*.o)
+ELFS 		= $(TEST)/test $(TEST)hello_world
 
-# TEST_LL		= test.ll
+TEST_LL		= test.ll
 
 
 $(minigo): minigo
@@ -62,14 +62,14 @@ endif
 # 	@$(AS) -c main.S -o main
 # 	@$(QEMU) main
 
-# gen_ir: 
-# 	@$(CLANG) -S -O0 -emit-llvm --target=riscv64-unknown-linux-gnu $(TESTPROG)
+gen_ir: 
+	@$(CLANG) -S -O0 -emit-llvm --target=riscv64-unknown-linux-gnu $(TESTPROG)
 
-# gen_bc: gen_ir
-# 	@$(LLVM_AS) $(PROG).ll -o $(PROG).bc
+gen_bc: gen_ir
+	@$(LLVM_AS) $(PROG).ll -o $(PROG).bc
 
-# llc:
-# 	@$(LLC) --march=riscv64 $(PROG).ll
+llc:
+	@$(LLC) --march=riscv64 $(PROG).ll
 
 # gen_asm: $(TESTPROG)
 # 	@$(CC) -S $(CFLAGS) $(TESTPROG) -o $(TESTASM)

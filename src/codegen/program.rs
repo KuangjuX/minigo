@@ -58,7 +58,7 @@ impl Program {
     }
 
 
-    fn gen_label(&self, func: &Function) -> Result<(), Error> {
+    fn gen_label(&self, func: &Function){
         let mut inner = func.inner.borrow_mut();
         for index in 0..func.blocks.len() {
             let label = Label {
@@ -67,7 +67,6 @@ impl Program {
             };
             inner.labels.push(label);
         }
-        Ok(())
     }
 
     fn gen_expr(&self, inner: &mut ProgInner, func: &Function) -> Result<(), Error> {

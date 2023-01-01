@@ -39,3 +39,7 @@ check icmp
 qemu-riscv64  testcases/if.exe
 [ "$?" = 1 ]
 check if
+
+qemu-riscv64  testcases/while.exe
+[ "$?" = 0 ]
+check while

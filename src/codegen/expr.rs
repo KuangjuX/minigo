@@ -85,8 +85,8 @@ impl Program {
     pub(crate) fn handle_store(&self, prog_inner: &mut ProgInner, func: &Function, inst: &Store) -> Result<()> {
         let address = &inst.address;
         let value = &inst.value;
-        match (parse_operand(address), parse_operand(value)) {
-            (Some(Op::LocalValue(name)), Some(Op::ConstValue(constval))) => {
+        match parse_operand_2(address, value) {
+            Some((Op::LocalValue(name), Op::ConstValue(constval))) => {
                 let local = func.find_local_var(name).ok_or(Error::new("Fail to find local var"))?;
                 match &local {
                     VirtualReg::Stack(stack_var) => {
@@ -102,8 +102,21 @@ impl Program {
                         }
                     }
                     VirtualReg::Reg(reg) => {
-
+                        todo!()
                     }
+                }
+            },
+            Some((Op::LocalValue(op1), Op::LocalValue(op2))) => {
+                let var1 = func.find_local_var(op1).ok_or(Error::new("Fail to find local var"))?;
+                let var2 = func.find_local_var(op2).ok_or(Error::new("Fail to find local var"))?;
+                // println!("var1: {:?}, var2: {:?}", var1, var2);
+                match (var1, var2) {
+                    (VirtualReg::Stack(stack), VirtualReg::Reg(reg)) => {
+                        let addr = stack.addr;
+                        let asm = format!("\tsd {}, -{}(fp)", reg.name, addr);
+                        self.write_asm(asm);
+                    },
+                    _ => { todo!() }
                 }
             }
             _ =>{ return Err(Error::new("Fail to parse operand"))}
@@ -145,7 +158,6 @@ impl Program {
                     (Op::LocalValue(loc1), Op::LocalValue(loc2)) => {
                         let var1 = func.find_local_var(loc1).ok_or(Error::new("Fail to find var"))?;
                         let var2 = func.find_local_var(loc2).ok_or(Error::new("Fail to find var"))?;
-                        // println!("[Debug] var1: {:?}, var2: {:?}", var1, var2);
                         match (var1, var2) {
                             (VirtualReg::Stack(stack1), VirtualReg::Stack(stack2)) => {
                                 todo!();
@@ -158,6 +170,19 @@ impl Program {
                         }
 
                     },
+                    (Op::LocalValue(var), Op::ConstValue(val)) => {
+                        let var = func.find_local_var(var).ok_or(Error::new("Fail to find var"))?;
+                        let ConstValue::Num(num, _) = val;
+                        match var {
+                            VirtualReg::Reg(reg) => {
+                                let asm = format!("\taddi {}, {}, {}", dest_reg_var.name, reg.name, num);
+                                self.write_asm(asm);
+                            },
+                            VirtualReg::Stack(stack) => {
+                                todo!()
+                            }
+                        }
+                    }   
                     _ => {}
                 }
             },
@@ -320,6 +345,19 @@ impl Program {
                         }
     
                     },
+                    (Op::LocalValue(var), Op::ConstValue(val)) => {
+                        let var = func.find_local_var(var).ok_or(Error::new("Fail to find var"))?;
+                        match var {
+                            VirtualReg::Reg(reg) => {
+                                let ConstValue::Num(num, _) = val;
+                                let asm = format!("\tslti {}, {}, {}", dest_reg_var.name, reg.name, num);
+                                self.write_asm(asm);
+                            },
+                            VirtualReg::Stack(stack) => {
+                                todo!()
+                            }
+                        }
+                    }
                     _ => {}
                 }
             },
