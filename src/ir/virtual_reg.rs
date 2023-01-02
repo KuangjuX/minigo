@@ -35,13 +35,19 @@ impl StackVar {
         }
     }
 
+    /// 将寄存器的值写回栈变量中
+    pub(crate) fn store_stack_var<'ctx>(&self, prog: &'ctx Program, reg: RegVar) {
+        let asm = format!("\tsd {}, -{}(fp)", reg.name, self.addr);
+        prog.write_asm(asm);
+    }
+
     /// 将栈变量加载到 help register 中
     pub(crate) fn load_stack_var_1<'ctx>(&self, prog: &'ctx Program, prog_inner: &mut ProgInner) -> RegVar {
         // 使用 help register
         let help_reg = prog_inner.get_help_reg_1();
         let reg_name = help_reg.name.clone();
         let offset = self.addr;
-        let asm = format!("    ld {}, -{}(fp)", reg_name, offset);
+        let asm = format!("\tld {}, -{}(fp)", reg_name, offset);
         prog.write_asm(asm);
         let reg_var = RegVar{ id: help_reg.index, name: help_reg.name };
         return reg_var
@@ -58,10 +64,6 @@ impl StackVar {
         return reg_var
     }
 
-    pub(crate) fn store_stack_var(&self, prog: &Program, reg_var: &RegVar) {
-        let asm = format!("    sd {}, -{}(fp)", reg_var.name, self.addr);
-        prog.write_asm(asm);
-    }
 }
 
 impl RegVar {

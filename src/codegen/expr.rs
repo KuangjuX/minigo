@@ -4,7 +4,7 @@ use llvm_ir::instruction::{Xor, Load, Store, Alloca, Add, Sub, Mul, SDiv, ICmp, 
 use llvm_ir::terminator::{Ret, Br, CondBr};
 use crate::codegen::reg::CALLER_SAVED_REGS;
 use crate::utils::{ parse_operand, parse_operand_2};
-use crate::ir::{VirtualReg};
+use crate::ir::{VirtualReg, StackVar, RegVar};
 
 impl Program {
     pub(crate) fn handle_alloca(&self, prog_inner: &mut ProgInner, func: &Function, inst: &Alloca) -> Result<()> {
@@ -152,6 +152,11 @@ impl Program {
                         let asm = format!("\tsd {}, -{}(fp)", reg.name, addr);
                         self.write_asm(asm);
                     },
+                    (VirtualReg::Stack(stack_var_1), VirtualReg::Stack(stack_var_2)) => {
+                        let help_reg_1 = stack_var_2.load_stack_var_1(self, prog_inner);
+                        let asm = format!("\tsd {}, -{}(fp)", help_reg_1.name, stack_var_1.addr);
+                        self.write_asm(asm);
+                    }
                     _ => { todo!() }
                 }
             }
@@ -225,14 +230,28 @@ impl Program {
                                 let var1 = func.find_local_var(loc1).ok_or(Error::new("Fail to find var"))?;
                                 let var2 = func.find_local_var(loc2).ok_or(Error::new("Fail to find var"))?;
                                 match (var1, var2) {
-                                    (VirtualReg::Stack(stack1), VirtualReg::Stack(stack2)) => {
-                                        todo!();
+                                    (VirtualReg::Stack(stack_var_1), VirtualReg::Stack(stack_var_2)) => {
+                                        // 分配两个帮助寄存器并将两个栈加载到帮助寄存器中
+                                        let help_reg_1 = stack_var_1.load_stack_var_1(self, prog_inner);
+                                        let help_reg_2 = stack_var_2.load_stack_var_2(self, prog_inner);
+                                        // 计算结果并写回目标寄存器
+                                        let asm = f(help_reg_1.name, help_reg_2.name, dest_reg_var.name, InstType::R);
+                                        self.write_asm(asm);
                                     },
                                     (VirtualReg::Reg(reg1), VirtualReg::Reg(reg2)) => {
                                         let asm = f(reg1.name, reg2.name, dest_reg_var.name, InstType::R);
                                         self.write_asm(asm)
                                     },
-                                    _ => { todo!() }
+                                    (VirtualReg::Reg(reg_var_1), VirtualReg::Stack(stack_var_2)) => {
+                                        let help_reg_1 = stack_var_2.load_stack_var_1(self, prog_inner);
+                                        let asm = f(reg_var_1.name.clone(), help_reg_1.name.clone(), dest_reg_var.name.clone(), InstType::R);
+                                        self.write_asm(asm);
+                                    },
+                                    (VirtualReg::Stack(stack_var_1), VirtualReg::Reg(reg_var_2)) => {
+                                        let help_reg_1 = stack_var_1.load_stack_var_1(self, prog_inner);
+                                        let asm = f(help_reg_1.name.clone(), reg_var_2.name.clone(), dest_reg_var.name.clone(), InstType::R);
+                                        self.write_asm(asm);
+                                    }
                                 }
         
                             },
@@ -244,8 +263,10 @@ impl Program {
                                             let asm = f(reg.name, format!("{}", num), dest_reg_var.name, InstType::I);
                                             self.write_asm(asm);
                                         },
-                                        VirtualReg::Stack(stack) => {
-                                            todo!()
+                                        VirtualReg::Stack(stack_var) => {
+                                            let help_reg = stack_var.load_stack_var_1(self, prog_inner);
+                                            let asm = f(help_reg.name, format!("{}", num), dest_reg_var.name, InstType::I);
+                                            self.write_asm(asm);
                                         }
                                     }
                                 }else{
@@ -260,7 +281,80 @@ impl Program {
                 }
             }
             None => {
-
+                // 物理寄存器分配溢出
+                // 分配栈变量
+                let stack_dest_var = VirtualReg::spill_virtual_var(self, func, 8, dest);
+                match parse_operand_2(&op0, &op1) {
+                    Some((ans1, ans2)) => {
+                        match (ans1, ans2) {
+                            (Op::LocalValue(loc1), Op::LocalValue(loc2)) => {
+                                let var1 = func.find_local_var(loc1).ok_or(Error::new("Fail to find var"))?;
+                                let var2 = func.find_local_var(loc2).ok_or(Error::new("Fail to find var"))?;
+                                match (var1, var2) {
+                                    (VirtualReg::Stack(stack_var_1), VirtualReg::Stack(stack_var_2)) => {
+                                        // 分配两个帮助寄存器并将两个栈加载到帮助寄存器中
+                                        let help_reg_1 = stack_var_1.load_stack_var_1(self, prog_inner);
+                                        let help_reg_2 = stack_var_2.load_stack_var_2(self, prog_inner);
+                                        // 计算结果并写回帮助寄存器
+                                        let asm = f(help_reg_1.name.clone(), help_reg_2.name, help_reg_1.name.clone(), InstType::R);
+                                        self.write_asm(asm);
+                                        // 将帮助寄存器的值存储回栈变量
+                                        stack_dest_var.store_stack_var(self, help_reg_1);
+                                    },
+                                    (VirtualReg::Reg(reg1), VirtualReg::Reg(reg2)) => {
+                                        let help_reg_1: RegVar = prog_inner.get_help_reg_1().into();
+                                        let asm = f(reg1.name, reg2.name, help_reg_1.name.clone(), InstType::R);
+                                        self.write_asm(asm);
+                                        // 将帮助寄存器的值存储回栈变量
+                                        stack_dest_var.store_stack_var(self, help_reg_1);
+                                    },
+                                    (VirtualReg::Reg(reg_var_1), VirtualReg::Stack(stack_var_2)) => {
+                                        let help_reg_1 = stack_var_2.load_stack_var_1(self, prog_inner);
+                                        let help_reg_2: RegVar = prog_inner.get_help_reg_2().into();
+                                        let asm = f(reg_var_1.name.clone(), help_reg_1.name.clone(), help_reg_2.name.clone(), InstType::R);
+                                        self.write_asm(asm);
+                                        stack_dest_var.store_stack_var(self, help_reg_2);
+                                    },
+                                    (VirtualReg::Stack(stack_var_1), VirtualReg::Reg(reg_var_2)) => {
+                                        let help_reg_1 = stack_var_1.load_stack_var_1(self, prog_inner);
+                                        let help_reg_2: RegVar = prog_inner.get_help_reg_2().into();
+                                        let asm = f(help_reg_1.name.clone(), reg_var_2.name.clone(), help_reg_2.name.clone(), InstType::R);
+                                        self.write_asm(asm);
+                                        stack_dest_var.store_stack_var(self, help_reg_2);
+                                    }
+                                }
+        
+                            },
+                            (Op::LocalValue(var), Op::ConstValue(val)) => {
+                                let var = func.find_local_var(var).ok_or(Error::new("Fail to find var"))?;
+                                if let ConstValue::Num(num, _) = val {
+                                    match var {
+                                        VirtualReg::Reg(reg) => {
+                                            let help_reg_1: RegVar = prog_inner.get_help_reg_1().into();
+                                            let asm = f(reg.name, format!("{}", num), help_reg_1.name.clone(), InstType::I);
+                                            self.write_asm(asm);
+                                            // 将帮助寄存器的值存储回栈变量
+                                            stack_dest_var.store_stack_var(self, help_reg_1);
+                                        },
+                                        VirtualReg::Stack(stack_var) => {
+                                            let help_reg_1 = stack_var.load_stack_var_1(self, prog_inner);
+                                            let help_reg_2:RegVar = prog_inner.get_help_reg_2().into();
+                                            let asm = f(help_reg_1.name, format!("{}", num), help_reg_2.name.clone(), InstType::I);
+                                            self.write_asm(asm);
+                                            // 将帮助寄存器的值存储回栈变量
+                                            stack_dest_var.store_stack_var(self, help_reg_2);
+                                        }
+                                    }
+                                }else{
+                                    todo!()
+                                }
+                                
+                            }   
+                            _ => {}
+                        }
+                    },
+                    None => return Err(Error::new("Fail to parse operand"))
+                }
             }
         }
         Ok(())
@@ -415,7 +509,7 @@ impl Program {
 
 
     /// handle ret instruction
-    pub(crate) fn handle_ret(&self, func: &Function, inst: &Ret) -> Result<()> {
+    pub(crate) fn handle_ret(&self, prog_inner: &mut ProgInner, func: &Function, inst: &Ret) -> Result<()> {
         // return 
         if let Some(op) = &inst.return_operand {
             match parse_operand(op) {
@@ -435,7 +529,9 @@ impl Program {
                             self.write_asm(asm);
                         },
                         Some(VirtualReg::Stack(stack_var)) => {
-                            todo!()
+                            let help_reg = stack_var.load_stack_var_1(self, prog_inner);
+                            let asm = format!("\tmv a0, {}", help_reg.name);
+                            self.write_asm(asm);
                         },
                         _ => { return Err(Error::new("Fail to find local var")) }
                     }

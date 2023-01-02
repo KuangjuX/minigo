@@ -153,7 +153,7 @@ impl Program {
             }
             let termianl = &block.term;
             match termianl {
-                Terminator::Ret(ret) => { self.handle_ret(func, &ret)?; }
+                Terminator::Ret(ret) => { self.handle_ret(inner, func, &ret)?; }
                 Terminator::Br(br) => { self.handle_br(func, &br)?; }
                 Terminator::CondBr(condbr) => { self.handle_condbr(inner, func, &condbr)?; }
                 _ => {}

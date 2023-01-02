@@ -1,3 +1,5 @@
+use crate::ir::RegVar;
+
 use super::{  ProgInner };
 
 pub static CALLER_SAVED_REGS: [&str; 16] = [
@@ -46,6 +48,15 @@ pub struct PhysicalReg {
     pub(crate) allocated: bool,
     pub(crate) index: usize,
     pub(crate) name: String
+}
+
+impl Into<RegVar> for PhysicalReg {
+    fn into(self) -> RegVar {
+        RegVar { 
+            id: self.index,
+            name: self.name
+         }
+    }
 }
 
 pub struct PhysicalRegs {
