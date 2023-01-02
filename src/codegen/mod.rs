@@ -23,6 +23,11 @@ pub enum Op {
     LocalValue(Name)
 }
 
+pub enum InstType {
+    I,
+    R
+}
+
 
 pub trait CodeGen {
     fn emit_text(&mut self);

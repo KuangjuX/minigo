@@ -28,11 +28,11 @@ mod arch;
 fn main() {
     // let PROG = env!("PROG");
     let args: Vec<String> = env::args().collect();
-    let PROG = &args[1];
-    let bc = format!("{}.bc", PROG);
-    let input = format!("{}.S", PROG);
-    let obj = format!("{}.o", PROG);
-    let elf = format!("{}.exe", PROG);
+    let prog = &args[1];
+    let bc = format!("{}.bc", prog);
+    let input = format!("{}.S", prog);
+    let obj = format!("{}.o", prog);
+    let elf = format!("{}.exe", prog);
     let ir = IR::new(bc);
     let mut program = ir.parse(input.as_str());
     program.codegen();

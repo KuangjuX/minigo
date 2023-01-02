@@ -81,10 +81,70 @@ impl Program {
                     Instruction::Store(store) => { self.handle_store(inner, func, &store)? },
                     Instruction::Xor(xor) => { self.handle_xor(inner, func, &xor)? }
                     Instruction::Load(load) => { self.handle_load(inner, func, &load)? }
-                    Instruction::Add(add) => { self.handle_add(inner, func, &add)? }
-                    Instruction::Sub(sub) => { self.handle_sub(inner, func, &sub)? }
-                    Instruction::Mul(mul) => { self.handle_mul(inner, func, &mul)? }
-                    Instruction::SDiv(sdiv) => { self.handle_sdiv(inner, func, &sdiv)? }
+                    Instruction::Add(add) => { 
+                        let op0 = add.operand0.clone();
+                        let op1 = add.operand1.clone();
+                        let dest = add.dest.clone();
+                        let f = move |op0, op1, dest, inst_type| {
+                            match inst_type {
+                                super::InstType::I => {
+                                    format!("\taddi {}, {}, {}", dest, op0, op1)
+                                },
+                                super::InstType::R => {
+                                    format!("\tadd {}, {}, {}", dest, op0, op1)
+                                }
+                            }
+                        };
+                        self.handle_add_sub_mul_div_mod(inner, func, op0, op1, dest, f)?;
+                    }
+                    Instruction::Sub(sub) => { 
+                        let op0 = sub.operand0.clone();
+                        let op1 = sub.operand1.clone();
+                        let dest = sub.dest.clone();
+                        let f = move |op0, op1, dest, inst_type| {
+                            match inst_type {
+                                super::InstType::I => {
+                                    format!("\taddi {}, {}, -{}", dest, op0, op1)
+                                },
+                                super::InstType::R => {
+                                    format!("\tsub {}, {}, {}", dest, op0, op1)
+                                }
+                            }
+                        };
+                        self.handle_add_sub_mul_div_mod(inner, func, op0, op1, dest, f)?;
+                    }
+                    Instruction::Mul(mul) => { 
+                        let op0 = mul.operand0.clone();
+                        let op1 = mul.operand1.clone();
+                        let dest = mul.dest.clone();
+                        let f = move |op0, op1, dest, inst_type| {
+                            match inst_type {
+                                super::InstType::I => {
+                                    format!("\tmul {}, {}, {}", dest, op0, op1)
+                                },
+                                super::InstType::R => {
+                                    format!("\tmul {}, {}, {}", dest, op0, op1)
+                                }
+                            }
+                        };
+                        self.handle_add_sub_mul_div_mod(inner, func, op0, op1, dest, f)?;
+                    }
+                    Instruction::SDiv(sdiv) => { 
+                        let op0 = sdiv.operand0.clone();
+                        let op1 = sdiv.operand1.clone();
+                        let dest = sdiv.dest.clone();
+                        let f = move |op0, op1, dest, inst_type| {
+                            match inst_type {
+                                super::InstType::I => {
+                                    format!("\tdiv {}, {}, {}", dest, op0, op1)
+                                },
+                                super::InstType::R => {
+                                    format!("\tdiv {}, {}, {}", dest, op0, op1)
+                                }
+                            }
+                        };
+                        self.handle_add_sub_mul_div_mod(inner, func, op0, op1, dest, f)?;
+                    }
                     Instruction::ICmp(icmp) => { self.handle_icmp(inner, func, &icmp)? }
                     Instruction::ZExt(zext) => { self.handle_zext(inner, func, &zext)? }
                     Instruction::Call(call) => { self.handle_call(inner, func, &call)? }
@@ -104,6 +164,13 @@ impl Program {
 
         Ok(())
     }
+
+    // 计算函数中变量所需要的栈空间
+    // fn assign_lvar_offsets(&self, inner: &mut ProgInner, func: &Function) {
+    //     for block in func.blocks {
+
+    //     }
+    // }
 
 }
 

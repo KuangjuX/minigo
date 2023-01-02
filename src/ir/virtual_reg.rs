@@ -35,19 +35,27 @@ impl StackVar {
         }
     }
 
-    /// Load a stack value into register
-    /// return RegVar
-    pub(crate) fn load_stack_var<'ctx>(&self, prog: &'ctx Program, prog_inner: &mut ProgInner) -> Option<RegVar> {
-        if let Some(physical_reg) = prog_inner.allocate_physical_reg() {
-            let reg_name = physical_reg.name.clone();
-            let offset = self.addr;
-            let asm = format!("    ld {}, -{}(fp)", reg_name, offset);
-            prog.write_asm(asm);
-            // return Some(physical_reg.clone())
-            let reg_var = RegVar{ id: physical_reg.index, name: physical_reg.name };
-            return Some(reg_var)
-        }
-        None
+    /// 将栈变量加载到 help register 中
+    pub(crate) fn load_stack_var_1<'ctx>(&self, prog: &'ctx Program, prog_inner: &mut ProgInner) -> RegVar {
+        // 使用 help register
+        let help_reg = prog_inner.get_help_reg_1();
+        let reg_name = help_reg.name.clone();
+        let offset = self.addr;
+        let asm = format!("    ld {}, -{}(fp)", reg_name, offset);
+        prog.write_asm(asm);
+        let reg_var = RegVar{ id: help_reg.index, name: help_reg.name };
+        return reg_var
+    }
+
+    pub(crate) fn load_stack_var_2<'ctx>(&self, prog: &'ctx Program, prog_inner: &mut ProgInner) -> RegVar {
+        // 使用 help register
+        let help_reg = prog_inner.get_help_reg_2();
+        let reg_name = help_reg.name.clone();
+        let offset = self.addr;
+        let asm = format!("    ld {}, -{}(fp)", reg_name, offset);
+        prog.write_asm(asm);
+        let reg_var = RegVar{ id: help_reg.index, name: help_reg.name };
+        return reg_var
     }
 
     pub(crate) fn store_stack_var(&self, prog: &Program, reg_var: &RegVar) {
@@ -63,6 +71,12 @@ impl RegVar {
 }
 
 impl VirtualReg {
+    /// 由于寄存器不够用，把变量放到栈上
+    pub(crate) fn spill_virtual_var(prog: &Program, func: &Function, size: usize, name: Name) -> StackVar {
+        Self::allocate_virt_stack_var(prog, func, size, name)
+    }
+
+
     /// allocate stack register when creating virtual register,
     /// you can find this local variable by sd reg, addr(fp)
     /// TODO: push local var into function
@@ -81,7 +95,7 @@ impl VirtualReg {
 
     /// allocate reg var when creating virtual reg
     /// push local var into function
-    pub(crate) fn allocate_virt_reg_var(prog_inner: &mut ProgInner, func: &Function, name: Name) -> Option<RegVar> {
+    pub(crate) fn try_allocate_virt_reg_var(prog_inner: &mut ProgInner, func: &Function, name: Name) -> Option<RegVar> {
         if let Some(physical_reg) = prog_inner.allocate_physical_reg() {
             let reg_var = RegVar {
                 id: physical_reg.index,
@@ -93,6 +107,7 @@ impl VirtualReg {
             func.add_local_var(var);
             return Some(reg_var)
         }
+        // 当没有空闲的寄存器, 返回 None
         None
     }
 

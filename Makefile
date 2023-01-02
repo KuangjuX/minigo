@@ -14,7 +14,7 @@ LLC 		= llc-10
 QEMU		= qemu-riscv64
 
 TEST		= testcases
-PROG 		?= call
+PROG 		?= test
 TESTELF		= $(TEST)/$(PROG)
 TESTASM     = $(TESTELF).S
 TESTPROG	= $(TESTELF).c
@@ -65,7 +65,7 @@ endif
 gen_ir: 
 	@$(CLANG) -S -O0 -emit-llvm --target=riscv64-unknown-linux-gnu $(TESTPROG)
 
-gen_bc: gen_ir
+gen_bc:
 	@$(LLVM_AS) $(PROG).ll -o $(PROG).bc
 
 llc:
