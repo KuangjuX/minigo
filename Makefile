@@ -91,7 +91,7 @@ llc:
 
 clean:
 	@cargo clean 
-	@rm *.s *.ll *.bc minigo || true
+	@rm *.s *.ll *.bc *.S *.o *.exe minigo || true
 	@make -C testcases
 
 # Stage 1

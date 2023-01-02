@@ -1,7 +1,7 @@
 use llvm_ir::{BasicBlock, name::Name};
 use std::{collections::VecDeque, cell::RefCell};
 
-use crate::ir::{VirtualReg, RegVar};
+use crate::ir::{VirtualReg};
 
 use super::{Ty, Var};
 
@@ -68,6 +68,7 @@ impl Function {
         false
     }
 
+    /// 找到对应的局部变量
     pub fn find_local_var(&self, name: Name) -> Option<VirtualReg> {
         let inner = self.inner.borrow();
         for local_var in inner.locals.iter() {

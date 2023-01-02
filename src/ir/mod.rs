@@ -192,13 +192,16 @@ impl IR {
             match ty {
                 &Type::IntegerType{bits} => {
                     // add stack depth
-                    func.push_var(8);
+                    // func.push_var(8);
                     // initiaize param 
-                    let mut param = Var::uninit();
-                    param.var_type = VarType::Param;
-                    param.ty = Ty::Num;
-                    param.size = 8;
-                    func.params.push(param);
+                    let mut param_var = Var::uninit();
+                    param_var.var_type = VarType::Param;
+                    param_var.ty = Ty::Num;
+                    param_var.size = if bits / 8 <= 8 {
+                        8
+                    }else{ bits as usize / 8 };
+                    param_var.name = Some(param.name.clone());
+                    func.params.push(param_var);
                 },
                 _ => {}
             }

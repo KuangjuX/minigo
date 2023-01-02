@@ -83,8 +83,9 @@ impl VirtualReg {
     /// you can find this local variable by sd reg, addr(fp)
     /// TODO: push local var into function
     pub(crate) fn allocate_virt_stack_var(prog: &Program, func: &Function, size: usize, name: Name) -> StackVar {
-        let offset = func.stack_size();
+        // let offset = func.stack_size();
         func.push_var(size);
+        let offset = func.stack_size();
         let stack_var = StackVar::new(offset, size);
         let asm = format!("    addi sp, sp, -{}", size);
         prog.write_asm(asm);

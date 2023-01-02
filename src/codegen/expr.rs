@@ -1,10 +1,10 @@
-use super::{ Program, Op, Function, Result, Error, ConstValue, ProgInner, Var, func, InstType};
+use super::{ Program, Op, Function, Result, Error, ConstValue, ProgInner, InstType};
 use llvm_ir::{Name, IntPredicate, Operand};
-use llvm_ir::instruction::{Xor, Load, Store, Alloca, Add, Sub, Mul, SDiv, ICmp, ZExt, Call};
+use llvm_ir::instruction::{Xor, Load, Store, Alloca,  ICmp, ZExt, Call};
 use llvm_ir::terminator::{Ret, Br, CondBr};
 use crate::codegen::reg::CALLER_SAVED_REGS;
 use crate::utils::{ parse_operand, parse_operand_2};
-use crate::ir::{VirtualReg, StackVar, RegVar};
+use crate::ir::{VirtualReg,  RegVar};
 
 impl Program {
     pub(crate) fn handle_alloca(&self, prog_inner: &mut ProgInner, func: &Function, inst: &Alloca) -> Result<()> {
@@ -516,7 +516,7 @@ impl Program {
                 Some(Op::ConstValue(constval)) => {
                     match constval {
                         ConstValue::Num(num, _) => {
-                            let asm = format!("    li a0, {}", num);
+                            let asm = format!("\tli a0, {}", num);
                             self.write_asm(asm);
                         }
                         _ => { todo!() }
@@ -525,7 +525,7 @@ impl Program {
                 Some(Op::LocalValue(name)) => {
                     match func.find_local_var(name) {
                         Some(VirtualReg::Reg(reg_var)) => {
-                            let asm = format!("    mv a0, {}", reg_var.name);
+                            let asm = format!("\tmv a0, {}", reg_var.name);
                             self.write_asm(asm);
                         },
                         Some(VirtualReg::Stack(stack_var)) => {
@@ -621,7 +621,7 @@ impl Program {
                         },
                         Op::ConstValue(val) => {
                             if let ConstValue::Num(num, _) = val {
-                                let asm = format!("\taddi a{}, zero, {}", index, 0);
+                                let asm = format!("\taddi a{}, zero, {}", index, num);
                                 self.write_asm(asm);
                             }else{
                                 todo!()

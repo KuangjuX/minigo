@@ -32,6 +32,10 @@ qemu-riscv64  testcases/div.exe
 [ "$?" = 7 ]
 check div
 
+qemu-riscv64  testcases/add_many_regs.exe
+[ "$?" = 134 ]
+check add_many_regs
+
 qemu-riscv64  testcases/icmp.exe
 [ "$?" = 1 ]
 check icmp
@@ -48,8 +52,9 @@ qemu-riscv64  testcases/call.exe
 [ "$?" = 42 ]
 check call
 
-qemu-riscv64  testcases/add_many_regs.exe
-[ "$?" = 134 ]
-check add_many_regs
+
+qemu-riscv64  testcases/call_1.exe
+[ "$?" = 15 ]
+check call_1
 
 

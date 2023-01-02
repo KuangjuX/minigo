@@ -1,7 +1,7 @@
 use llvm_ir::name::Name;
 use crate::ir::VirtualReg;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum VarType {
     Global,
     Local,
@@ -12,7 +12,7 @@ pub enum VarType {
 
 
 /// variable type
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Ty {
     Num,
     Struct,
@@ -42,7 +42,7 @@ impl Ty {
 }
 
 /// Variable
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Var {
     pub var_type: VarType,
     /// variable type

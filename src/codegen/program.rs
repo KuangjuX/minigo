@@ -5,6 +5,8 @@ use std::cell::{ RefCell, UnsafeCell };
 use std::fmt::{Write, self};
 use bit_field::BitField;
 use llvm_ir::{ Instruction, terminator::Terminator };
+use crate::ir::{RegVar, VirtualReg};
+
 use super::error::Error;
 use super::func::Label;
 use super::{PhysicalRegs};
@@ -214,22 +216,33 @@ impl CodeGen for Program {
             self.write_asm("    sd fp, 0(sp)");
 
             // write fp to sp
-            self.write_asm("    # write sp to fp");
-            self.write_asm("    mv fp, sp");
+            self.write_asm("\t# write sp to fp");
+            self.write_asm("\tmv fp, sp");
 
             // sp = sp - stack_size
-            self.write_asm("    # Store params");
-            let asm = format!("    addi sp, sp, -{}", func.stack_size());
-            self.write_asm(asm);
+            // self.write_asm("\t# Store params");
+            // let asm = format!("\taddi sp, sp, -{}", func.stack_size());
+            // self.write_asm(asm);
 
             // Store all params
-            let mut offset = 0;
+            // let mut offset = 0;
             for (index ,param) in func.params.iter().enumerate() {
                 match param.ty {
                     Ty::Num => {
-                        let asm = format!("    sd a{}, {}(sp)", index, offset);
-                        self.write_asm(asm);
-                        offset += 8;
+                        // let asm = format!("\tsd a{}, {}(sp)", index, offset);
+                        // self.write_asm(asm);
+                        // offset += 8;
+                        // 存在参数的话，创建变量
+                        let mut local_var = param.clone();
+                        local_var.local_val = Some(
+                            VirtualReg::Reg(
+                                RegVar{
+                                    id: index, 
+                                    name: format!("a{}", index)
+                                }
+                            )
+                        );
+                        func.add_local_var(local_var);
                     },
                     _ => {}
                 }
