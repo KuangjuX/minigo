@@ -47,3 +47,9 @@ check while
 qemu-riscv64  testcases/call.exe
 [ "$?" = 42 ]
 check call
+
+qemu-riscv64  testcases/add_many_regs.exe
+[ "$?" = 134 ]
+check add_many_regs
+
+
