@@ -157,7 +157,7 @@ impl Program {
             match termianl {
                 Terminator::Ret(ret) => { self.handle_ret(inner, func, &ret)?; }
                 Terminator::Br(br) => { self.handle_br(func, &br)?; }
-                Terminator::CondBr(condbr) => { self.handle_condbr(inner, func, &condbr)?; }
+                Terminator::CondBr(condbr) => { self.handle_condbr(func, &condbr)?; }
                 _ => {}
             }
             self.write_asm("\n\n");
@@ -219,19 +219,10 @@ impl CodeGen for Program {
             self.write_asm("\t# write sp to fp");
             self.write_asm("\tmv fp, sp");
 
-            // sp = sp - stack_size
-            // self.write_asm("\t# Store params");
-            // let asm = format!("\taddi sp, sp, -{}", func.stack_size());
-            // self.write_asm(asm);
-
-            // Store all params
-            // let mut offset = 0;
             for (index ,param) in func.params.iter().enumerate() {
+                // TODO: 如果参数内容超过 7 个的话，需要创建栈变量
                 match param.ty {
                     Ty::Num => {
-                        // let asm = format!("\tsd a{}, {}(sp)", index, offset);
-                        // self.write_asm(asm);
-                        // offset += 8;
                         // 存在参数的话，创建变量
                         let mut param_var = param.clone();
                         param_var.local_val = Some(

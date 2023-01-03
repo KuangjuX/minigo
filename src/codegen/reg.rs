@@ -28,19 +28,16 @@ impl ProgInner {
         self.regs.free_all_physical_regs();
     }
 
-    /// 获取一个帮助寄存器
+    /// 获取帮助寄存器 t0
     pub(crate) fn get_help_reg_1(&self) -> PhysicalReg {
         self.regs.get_help_physical_reg_1()
     }
 
+    /// 获取帮助寄存器 t1
     pub(crate) fn get_help_reg_2(&self) -> PhysicalReg {
         self.regs.get_help_physical_reg_2()
     }
 
-    /// 获取两个帮助寄存器
-    pub(crate) fn get_2_help_reg(&self) -> (PhysicalReg, PhysicalReg) {
-        self.regs.get_2_help_physical_reg()
-    }
 }
 
 #[derive(Debug, Clone)]
@@ -112,7 +109,7 @@ impl PhysicalRegs {
         PhysicalReg {
             allocated: false,
             index: 0,
-            name: String::from("a0")
+            name: String::from("t0")
         }
     }
 
@@ -120,23 +117,9 @@ impl PhysicalRegs {
         PhysicalReg {
             allocated: false,
             index: 1,
-            name:String::from("a1")
+            name:String::from("t1")
         }
     }
 
-    /// 获取两个帮助寄存器
-    pub(crate) fn get_2_help_physical_reg(&self) -> (PhysicalReg, PhysicalReg) {
-        ( 
-            PhysicalReg {
-                allocated: false,
-                index: 0,
-                name: String::from("a0")
-            },
-            PhysicalReg {
-                allocated: false,
-                index: 1,
-                name:String::from("a1")
-            }
-        )
-    }
+   
 }

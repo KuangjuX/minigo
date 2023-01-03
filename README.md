@@ -66,11 +66,11 @@ We suppply some test examples under testcases directory
 - [x] Unary Experssions
 - [x] Add, Sub, Mul, Div,Mod
 - [x] Compare && Logical Experssions
-- [ ] Local Variables and Assignment
+- [x] Local Variables and Assignment
 - [x] Conditional Expressions
-- [ ] Scope && Block Statements
+- [x] Scope && Block Statements
 - [x] Loop Statement
-- [ ] Functions
+- [x] Functions
 - [x] Global Variables
 - [ ] Array
 
