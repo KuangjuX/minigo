@@ -1,3 +1,5 @@
+use std::fmt::{Debug, Display};
+
 use super::{ Program, Op, Function, Result, Error, ConstValue, ProgInner, InstType};
 use llvm_ir::{Name, IntPredicate, Operand};
 use llvm_ir::instruction::{Xor, Load, Store, Alloca,  ICmp, ZExt, Call};
@@ -6,6 +8,46 @@ use crate::utils::{ parse_operand, parse_operand_2};
 use crate::ir::{VirtualReg,  RegVar};
 
 impl Program {
+    /// 处理谓词逻辑
+    fn handle_predicate<S: Display, U: Display, V: Display>(&self, predicate: &IntPredicate, prog_inner: &mut ProgInner, op0: S, op1: U, dest: V) {
+        match predicate {
+            IntPredicate::EQ => {
+                let help_reg = prog_inner.get_help_reg_1();
+                let asm = format!("\txor {}, {}, {}", help_reg.name, op0, op1);
+                self.write_asm(asm);
+                let asm = format!("\tseqz {}, {}", dest, help_reg.name);
+                self.write_asm(asm);
+            },
+            IntPredicate::NE => {
+                let help_reg = prog_inner.get_help_reg_1();
+                let asm = format!("\txor {}, {}, {}", help_reg.name, op0, op1);
+                self.write_asm(asm);
+                let asm = format!("\tsnez {}, {}", dest, help_reg.name);
+                self.write_asm(asm);
+            },
+            IntPredicate::SGT => {
+                let asm = format!("\tslt {}, {}, {}", dest, op1, op0);
+                self.write_asm(asm);
+            },
+            IntPredicate::SGE => {
+                let asm = format!("\tslt {}, {}, {}", dest, op1, op0);
+                self.write_asm(asm);
+                let asm = format!("\txori {}, {}, 1", dest, dest);
+                self.write_asm(asm);
+            },
+            IntPredicate::SLT => {
+                let asm = format!("\tslt {}, {}, {}",dest, op0, op1);
+                self.write_asm(asm);
+            },
+            IntPredicate::SLE => {
+                let asm = format!("\tslt {}, {}, {}", dest, op0, op1);
+                self.write_asm(asm);
+                let asm = format!("\txori {}, {}, 1", dest, dest);
+                self.write_asm(asm);
+            }
+            _ => { todo!() }
+        }
+    }
     pub(crate) fn handle_alloca(&self, prog_inner: &mut ProgInner, func: &Function, inst: &Alloca) -> Result<()> {
         let num_elements = &inst.num_elements;
         let dest = &inst.dest;
@@ -22,26 +64,6 @@ impl Program {
             },
             _ => {}
         }
-        
-        // if let Ok((ty, size)) = parse_type(allocated_type) {
-        //     let reg = &inst.dest;
-        //     let mut func_inner = func.inner.borrow_mut();
-        //     if func_inner.locals.iter().position(|local| local.name == Some(reg.clone())).is_none() {
-        //         let mut local_var = Var::uninit();
-        //         // Set local variable type
-        //         local_var.ty = ty;
-        //         // Set local variable size
-        //         local_var.size = size;
-        //         // Set local variable name
-        //         local_var.name = Some(reg.clone());
-        //         // Set stack variable(address, size)
-        //         let stack_var = VirtualReg::allocate_virt_stack_var(self, func, offset);
-        //         local_var.local_val = Some(VirtualReg::Stack(stack_var));
-        //         func_inner.locals.push(local_var);
-        //     } 
-        // }else{
-        //     // warning!("Fail to parse type: {:?}", &alloca.allocated_type);
-        // }
         Ok(())
     }
 
@@ -377,43 +399,7 @@ impl Program {
                                 todo!();
                             },
                             (VirtualReg::Reg(reg1), VirtualReg::Reg(reg2)) => {
-                                match predicate {
-                                    IntPredicate::EQ => {
-                                        let help_reg = prog_inner.get_help_reg_1();
-                                        let asm = format!("\txor {}, {}, {}", help_reg.name, reg1.name, reg2.name);
-                                        self.write_asm(asm);
-                                        let asm = format!("\tseqz {}, {}", dest_reg_var.name, help_reg.name);
-                                        self.write_asm(asm);
-                                    },
-                                    IntPredicate::NE => {
-                                        let help_reg = prog_inner.get_help_reg_1();
-                                        let asm = format!("\txor {}, {}, {}", help_reg.name, reg1.name, reg2.name);
-                                        self.write_asm(asm);
-                                        let asm = format!("\tsnez {}, {}", dest_reg_var.name, help_reg.name);
-                                        self.write_asm(asm);
-                                    },
-                                    IntPredicate::SGT => {
-                                        let asm = format!("\tslt {}, {}, {}", dest_reg_var.name, reg2.name, reg1.name);
-                                        self.write_asm(asm);
-                                    },
-                                    IntPredicate::SGE => {
-                                        let asm = format!("\tslt {}, {}, {}", dest_reg_var.name, reg2.name, reg1.name);
-                                        self.write_asm(asm);
-                                        let asm = format!("\txori {}, {}, 1", dest_reg_var.name, dest_reg_var.name);
-                                        self.write_asm(asm);
-                                    },
-                                    IntPredicate::SLT => {
-                                        let asm = format!("\tslt {}, {}, {}", dest_reg_var.name, reg1.name, reg2.name);
-                                        self.write_asm(asm);
-                                    },
-                                    IntPredicate::SLE => {
-                                        let asm = format!("\tslt {}, {}, {}", dest_reg_var.name, reg1.name, reg2.name);
-                                        self.write_asm(asm);
-                                        let asm = format!("\txori {}, {}, 1", dest_reg_var.name, dest_reg_var.name);
-                                        self.write_asm(asm);
-                                    }
-                                    _ => { todo!() }
-                                }
+                                self.handle_predicate(predicate, prog_inner, reg1.name, reg2.name, dest_reg_var.name);
                             },
                             _ => { todo!() }
                         }
@@ -424,43 +410,7 @@ impl Program {
                         match var {
                             VirtualReg::Reg(reg) => {
                                 if let ConstValue::Num(num, _) = val {
-                                    match predicate {
-                                        IntPredicate::EQ => {
-                                            let help_reg = prog_inner.get_help_reg_1();
-                                            let asm = format!("\txori {}, {}, {}", help_reg.name, reg.name, num);
-                                            self.write_asm(asm);
-                                            let asm = format!("\tseqz {}, {}", dest_reg_var.name, help_reg.name);
-                                            self.write_asm(asm);
-                                        },
-                                        IntPredicate::NE => {
-                                            let help_reg = prog_inner.get_help_reg_1();
-                                            let asm = format!("\txori {}, {}, {}", help_reg.name, reg.name, num);
-                                            self.write_asm(asm);
-                                            let asm = format!("\tsnez {}, {}", dest_reg_var.name, help_reg.name);
-                                            self.write_asm(asm);
-                                        }
-                                        IntPredicate::SGT => {
-                                            let asm = format!("\tslti {}, {}, {}", dest_reg_var.name, num, reg.name);
-                                            self.write_asm(asm);
-                                        }
-                                        IntPredicate::SGE => {
-                                            let asm = format!("\tslti {}, {}, {}", dest_reg_var.name, num, reg.name);
-                                            self.write_asm(asm);
-                                            let asm = format!("\txori {}, {}, 1", dest_reg_var.name, dest_reg_var.name);
-                                            self.write_asm(asm);
-                                        }
-                                        IntPredicate::SLT => {
-                                            let asm = format!("\tslti {}, {}, {}", dest_reg_var.name, reg.name, num);
-                                            self.write_asm(asm);
-                                        },
-                                        IntPredicate::SLE => {
-                                            let asm = format!("\tslti {}, {}, {}", dest_reg_var.name, reg.name, num);
-                                            self.write_asm(asm);
-                                            let asm = format!("\txori {}, {}, 1", dest_reg_var.name, dest_reg_var.name);
-                                            self.write_asm(asm);
-                                        }
-                                        _ => { todo!() }
-                                    }
+                                    self.handle_predicate(predicate, prog_inner, reg.name, num, dest_reg_var.name);
                                 }else{
                                     todo!()
                                 }
@@ -590,21 +540,7 @@ impl Program {
         // 恢复 caller-saved 寄存器
         // 拿到函数调用的返回值，作为函数调用表达式的值
 
-        // STEP1: 首先，保存 caller-saved 寄存器
-        // 计算 caller-saved 寄存器所占的栈空间
-        // let space: isize = 8 * CALLER_SAVED_REGS.len() as isize;
-        // 将栈顶指针下移
-        // let asm = format!("\taddi sp, sp, -{}", space);
-        // self.write_asm(asm);
-        // // 保存寄存器
         let mut index = 0;
-        // for reg in CALLER_SAVED_REGS {
-        //     let asm = format!("\tsd {}, {}(sp)", reg, index);
-        //     self.write_asm(asm);
-        //     index += 8;
-        // }
-        // // 修改函数栈空间大小
-        // func.add_stack_size(space as isize);
 
         // STEP2: 将参数放在 a0 - a7 寄存器中，如果还有其他参数，则以从右向左的顺序压栈
         // 第 9 个参数在栈顶位置
@@ -675,7 +611,7 @@ impl Program {
         // 分配物理寄存器
         let dest_reg_var = VirtualReg::try_allocate_virt_reg_var(prog_inner, func, dest.clone()).ok_or(Error::new("Fail to allocate reg var"))?;
         let func_op = inst.function.clone().right().unwrap();
-        // 保存使用过的寄存器
+        // 保存上下文
         func.store_regs(self);
         if let Some(func) = parse_operand(&func_op) {
             match func {
@@ -702,24 +638,11 @@ impl Program {
         }else{
             return Err(Error::ParseErr{ err: format!("[Call] Fail to parse function {:?}", func_op)})
         }
-        // 恢复使用过的寄存器
+        // 恢复上下文
         func.restore_regs(self);
         // 获取函数返回值
         let asm = format!("\tmv {}, a0", dest_reg_var.name);
         self.write_asm(asm);
-        // 将调用的返回值赋给虚拟寄存器
-        // STEP4: 恢复 caller-saved 寄存器
-        // index = 0;
-        // for reg in CALLER_SAVED_REGS {
-        //     let asm = format!("\tld {}, {}(sp)", reg, index);
-        //     self.write_asm(asm);
-        //     index += 8;
-        // }
-        // // 修改栈顶指针
-        // let asm = format!("\taddi sp, sp, {}", space);
-        // self.write_asm(asm);
-        // func.add_stack_size(-space as isize);
-
         Ok(())
     }
 }
