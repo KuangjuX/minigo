@@ -48,6 +48,54 @@ impl Program {
             _ => { todo!() }
         }
     }
+
+
+    fn handle_common_icmp(&self, prog_inner: &mut ProgInner, func: &Function, predicate: &IntPredicate, op0: & Operand, op1: &Operand, dest_reg_var: RegVar) -> Result<()> {
+        match parse_operand_2(op0, op1) {
+            Some((ans1, ans2)) => {
+                match (ans1, ans2) {
+                    (Op::LocalValue(var1), Op::LocalValue(var2)) => {
+                        let var1 = func.find_local_var(var1).ok_or(Error::new("Fail to find var"))?;
+                        let var2 = func.find_local_var(var2).ok_or(Error::new("Fail to find var"))?;
+                        match (var1, var2) {
+                            (VirtualReg::Stack(stack_var_1), VirtualReg::Stack(stack_var_2)) => {
+                                // 为 stack1 和 stack2 分配两个帮助寄存器
+                                let help_reg_1 = stack_var_1.load_stack_var_1(self, prog_inner);
+                                let help_reg_2 = stack_var_2.load_stack_var_2(self, prog_inner);
+                                self.handle_predicate(predicate, prog_inner, help_reg_1.name, help_reg_2.name, dest_reg_var.name);
+                            },
+                            (VirtualReg::Reg(reg1), VirtualReg::Reg(reg2)) => {
+                                self.handle_predicate(predicate, prog_inner, reg1.name, reg2.name, dest_reg_var.name);
+                            },
+                            _ => { todo!() }
+                        }
+    
+                    },
+                    (Op::LocalValue(var), Op::ConstValue(val)) => {
+                        let var = func.find_local_var(var).ok_or(Error::new("Fail to find var"))?;
+                        match val {
+                            ConstValue::Num(num, _) => {
+                                match var {
+                                    VirtualReg::Reg(reg) => {
+                                        self.handle_predicate(predicate, prog_inner, reg.name, num, dest_reg_var.name);
+                                    },
+                                    VirtualReg::Stack(stack) => {
+                                        let help_reg_1 = stack.load_stack_var_1(self, prog_inner);
+                                        self.handle_predicate(predicate, prog_inner,help_reg_1.name, num, dest_reg_var.name);
+                                    }
+                                }
+                            },
+                            _ => { todo!() }
+                        }
+                    }
+                    _ => {}
+                }
+            },
+            None => return Err(Error::new("Fail to parse operand"))
+        }
+        Ok(())
+    }
+
     pub(crate) fn handle_alloca(&self, prog_inner: &mut ProgInner, func: &Function, inst: &Alloca) -> Result<()> {
         let num_elements = &inst.num_elements;
         let dest = &inst.dest;
@@ -387,45 +435,18 @@ impl Program {
         let op0 = &inst.operand0;
         let op1 = &inst.operand1;
         let dest = &inst.dest;
-        let dest_reg_var = VirtualReg::try_allocate_virt_reg_var(prog_inner, func, dest.clone()).ok_or(Error::new("Fail to allocate reg var"))?;
-        match parse_operand_2(op0, op1) {
-            Some((ans1, ans2)) => {
-                match (ans1, ans2) {
-                    (Op::LocalValue(loc1), Op::LocalValue(loc2)) => {
-                        let var1 = func.find_local_var(loc1).ok_or(Error::new("Fail to find var"))?;
-                        let var2 = func.find_local_var(loc2).ok_or(Error::new("Fail to find var"))?;
-                        match (var1, var2) {
-                            (VirtualReg::Stack(stack1), VirtualReg::Stack(stack2)) => {
-                                todo!();
-                            },
-                            (VirtualReg::Reg(reg1), VirtualReg::Reg(reg2)) => {
-                                self.handle_predicate(predicate, prog_inner, reg1.name, reg2.name, dest_reg_var.name);
-                            },
-                            _ => { todo!() }
-                        }
-    
-                    },
-                    (Op::LocalValue(var), Op::ConstValue(val)) => {
-                        let var = func.find_local_var(var).ok_or(Error::new("Fail to find var"))?;
-                        match var {
-                            VirtualReg::Reg(reg) => {
-                                if let ConstValue::Num(num, _) = val {
-                                    self.handle_predicate(predicate, prog_inner, reg.name, num, dest_reg_var.name);
-                                }else{
-                                    todo!()
-                                }
-                                
-                            },
-                            VirtualReg::Stack(stack) => {
-                                todo!()
-                            }
-                        }
-                    }
-                    _ => {}
-                }
+        match VirtualReg::try_allocate_virt_reg_var(prog_inner, func, dest.clone()) {
+            Some(dest_reg_var) => {
+                self.handle_common_icmp(prog_inner, func, predicate, op0, op1, dest_reg_var)?;
             },
-            None => return Err(Error::new("Fail to parse operand"))
+            None => {
+                let stack_dest_var = VirtualReg::spill_virtual_var(self, func, 8, dest.clone());
+                let help_reg = stack_dest_var.load_stack_var_1(self, prog_inner);
+                self.handle_common_icmp(prog_inner, func, predicate, op0, op1, help_reg.clone())?;
+                stack_dest_var.store_stack_var(self, help_reg);
+            }
         }
+        
         Ok(())
     } 
 
