@@ -233,8 +233,8 @@ impl CodeGen for Program {
                         // self.write_asm(asm);
                         // offset += 8;
                         // 存在参数的话，创建变量
-                        let mut local_var = param.clone();
-                        local_var.local_val = Some(
+                        let mut param_var = param.clone();
+                        param_var.local_val = Some(
                             VirtualReg::Reg(
                                 RegVar{
                                     id: index, 
@@ -242,7 +242,7 @@ impl CodeGen for Program {
                                 }
                             )
                         );
-                        func.add_local_var(local_var);
+                        func.add_param_var(param_var);
                     },
                     _ => {}
                 }

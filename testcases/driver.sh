@@ -40,6 +40,10 @@ qemu-riscv64  testcases/icmp.exe
 [ "$?" = 1 ]
 check icmp
 
+qemu-riscv64  testcases/equal.exe
+[ "$?" = 1 ]
+check equal
+
 qemu-riscv64  testcases/if.exe
 [ "$?" = 1 ]
 check if
@@ -56,5 +60,9 @@ check call
 qemu-riscv64  testcases/call_1.exe
 [ "$?" = 15 ]
 check call_1
+
+qemu-riscv64  testcases/fib.exe
+[ "$?" = 5 ]
+check fib
 
 

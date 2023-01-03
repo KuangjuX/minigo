@@ -2,14 +2,12 @@ use super::{ Program, Op, Function, Result, Error, ConstValue, ProgInner, InstTy
 use llvm_ir::{Name, IntPredicate, Operand};
 use llvm_ir::instruction::{Xor, Load, Store, Alloca,  ICmp, ZExt, Call};
 use llvm_ir::terminator::{Ret, Br, CondBr};
-use crate::codegen::reg::CALLER_SAVED_REGS;
 use crate::utils::{ parse_operand, parse_operand_2};
 use crate::ir::{VirtualReg,  RegVar};
 
 impl Program {
     pub(crate) fn handle_alloca(&self, prog_inner: &mut ProgInner, func: &Function, inst: &Alloca) -> Result<()> {
         let num_elements = &inst.num_elements;
-        // let allocated_type = &inst.allocated_type;
         let dest = &inst.dest;
         match parse_operand(num_elements) {
             Some(Op::ConstValue(op)) => {
@@ -594,19 +592,19 @@ impl Program {
 
         // STEP1: 首先，保存 caller-saved 寄存器
         // 计算 caller-saved 寄存器所占的栈空间
-        let space: isize = 8 * CALLER_SAVED_REGS.len() as isize;
+        // let space: isize = 8 * CALLER_SAVED_REGS.len() as isize;
         // 将栈顶指针下移
-        let asm = format!("\taddi sp, sp, -{}", space);
-        self.write_asm(asm);
-        // 保存寄存器
+        // let asm = format!("\taddi sp, sp, -{}", space);
+        // self.write_asm(asm);
+        // // 保存寄存器
         let mut index = 0;
-        for reg in CALLER_SAVED_REGS {
-            let asm = format!("\tsd {}, {}(sp)", reg, index);
-            self.write_asm(asm);
-            index += 8;
-        }
-        // 修改函数栈空间大小
-        func.add_stack_size(space as isize);
+        // for reg in CALLER_SAVED_REGS {
+        //     let asm = format!("\tsd {}, {}(sp)", reg, index);
+        //     self.write_asm(asm);
+        //     index += 8;
+        // }
+        // // 修改函数栈空间大小
+        // func.add_stack_size(space as isize);
 
         // STEP2: 将参数放在 a0 - a7 寄存器中，如果还有其他参数，则以从右向左的顺序压栈
         // 第 9 个参数在栈顶位置
@@ -617,7 +615,16 @@ impl Program {
                 if let Some(op) = parse_operand(arg) {
                     match op {
                         Op::LocalValue(name) => {
-                            todo!()
+                            let var = func.find_local_var(name).ok_or(Error::new("Failed to find local var"))?;
+                            match var {
+                                VirtualReg::Stack(stack_var) => {
+                                    todo!()
+                                },
+                                VirtualReg::Reg(reg_var) => {
+                                    let asm = format!("\tmv a{}, {}", index, reg_var.name);
+                                    self.write_asm(asm);
+                                }
+                            }
                         },
                         Op::ConstValue(val) => {
                             if let ConstValue::Num(num, _) = val {
@@ -668,6 +675,8 @@ impl Program {
         // 分配物理寄存器
         let dest_reg_var = VirtualReg::try_allocate_virt_reg_var(prog_inner, func, dest.clone()).ok_or(Error::new("Fail to allocate reg var"))?;
         let func_op = inst.function.clone().right().unwrap();
+        // 保存使用过的寄存器
+        func.store_regs(self);
         if let Some(func) = parse_operand(&func_op) {
             match func {
                 Op::ConstValue(val) => {
@@ -693,21 +702,23 @@ impl Program {
         }else{
             return Err(Error::ParseErr{ err: format!("[Call] Fail to parse function {:?}", func_op)})
         }
+        // 恢复使用过的寄存器
+        func.restore_regs(self);
         // 获取函数返回值
         let asm = format!("\tmv {}, a0", dest_reg_var.name);
         self.write_asm(asm);
         // 将调用的返回值赋给虚拟寄存器
         // STEP4: 恢复 caller-saved 寄存器
-        index = 0;
-        for reg in CALLER_SAVED_REGS {
-            let asm = format!("\tld {}, {}(sp)", reg, index);
-            self.write_asm(asm);
-            index += 8;
-        }
-        // 修改栈顶指针
-        let asm = format!("\taddi sp, sp, {}", space);
-        self.write_asm(asm);
-        func.add_stack_size(-space as isize);
+        // index = 0;
+        // for reg in CALLER_SAVED_REGS {
+        //     let asm = format!("\tld {}, {}(sp)", reg, index);
+        //     self.write_asm(asm);
+        //     index += 8;
+        // }
+        // // 修改栈顶指针
+        // let asm = format!("\taddi sp, sp, {}", space);
+        // self.write_asm(asm);
+        // func.add_stack_size(-space as isize);
 
         Ok(())
     }
