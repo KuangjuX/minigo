@@ -6,14 +6,11 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-llvm-ir = { version = "0.8.1", features = ["llvm-10"] }
+llvm-ir = { version = "0.8.2", features = ["llvm-14"] }
 bit_field = { version = "0.10.1" }
 log4rs = { version = "1.1.1" }
 lazy_static = { version = "1.4.0" }
 serde_json = { version = "1.0.0" }
 serde = { version = "1.0.0" }
 
-[features]
-default = []
-riscv32 = []
-riscv64 = []
+

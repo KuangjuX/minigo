@@ -72,7 +72,7 @@ pub fn run_linker(input: &str, output: &str) {
 }
 
 fn find_assembler() -> Option<String> {
-    let paths = vec!["/home/kuangjux/riscv/riscv64-unknown-elf-gcc-8.3.0-2020.04.1-x86_64-linux-ubuntu14/bin/riscv64-unknown-elf-as"];
+    let paths = vec!["/home/kuangjux/software/riscv/riscv-toolchains/bin/riscv64-unknown-elf-as"];
     for path in paths.iter() {
         if Path::new(path).exists() {
             let assembler = format!("{}", path);
@@ -83,7 +83,7 @@ fn find_assembler() -> Option<String> {
 }
 
 fn find_gcc() -> Option<String> {
-    let paths = vec!["/home/kuangjux/riscv/riscv64-unknown-elf-gcc-8.3.0-2020.04.1-x86_64-linux-ubuntu14/bin/riscv64-unknown-elf-gcc"];
+    let paths = vec!["/home/kuangjux/software/riscv/riscv-toolchains/bin/riscv64-unknown-elf-gcc"];
     for path in paths.iter() {
         if Path::new(path).exists() {
             let assembler = format!("{}", path);
@@ -95,7 +95,7 @@ fn find_gcc() -> Option<String> {
 
 /// Find riscv64-unknown-elf-ld
 fn find_ld() -> Option<String> {
-    let paths = ["/home/kuangjux/riscv/riscv64-unknown-elf-gcc-8.3.0-2020.04.1-x86_64-linux-ubuntu14/bin/riscv64-unknown-elf-ld"];
+    let paths = ["/home/kuangjux/software/riscv/riscv-toolchains/bin/riscv64-unknown-elf-ld"];
     for path in paths.iter() {
         if Path::new(path).exists() {
             let ld = format!("{}", path);
@@ -107,8 +107,8 @@ fn find_ld() -> Option<String> {
 
 /// Find riscv64 runtime library
 fn find_libpath() -> Option<String> {
-    if Path::new("/home/kuangjux/riscv/riscv64-unknown-elf-gcc-8.3.0-2020.04.1-x86_64-linux-ubuntu14/lib/gcc/riscv64-unknown-elf/8.3.0/ctri.o").exists() {
-        let path = format!("{}", "/home/kuangjux/riscv/riscv64-unknown-elf-gcc-8.3.0-2020.04.1-x86_64-linux-ubuntu14/lib/gcc/riscv64-unknown-elf/8.3.0");
+    if Path::new("/home/kuangjux/software/riscv/riscv-toolchains/lib/gcc/riscv64-unknown-elf/8.3.0/ctri.o").exists() {
+        let path = format!("{}", "/home/kuangjux/riscv/riscv-toolchains/lib/gcc/riscv64-unknown-elf/8.3.0");
         return Some(path)
     }
     None

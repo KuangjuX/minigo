@@ -14,14 +14,6 @@ use std::env;
 
 
 
-#[cfg(feature = "riscv32")]
-#[path = "arch/riscv32.rs"]
-mod arch;
-
-
-#[cfg(feature = "riscv64")]
-#[path = "arch/riscv64.rs"]
-mod arch;
 
 // static PROG: &'static str = env!("PROG");
 

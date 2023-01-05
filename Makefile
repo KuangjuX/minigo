@@ -1,4 +1,4 @@
-RVDIR 		= /home/kuangjux/riscv/riscv64-unknown-elf-gcc-8.3.0-2020.04.1-x86_64-linux-ubuntu14/bin
+RVDIR 		= /home/kuangjux/software/riscv/riscv-toolchains/bin
 TARGET		= riscv64-unknown-elf-
 
 CC			= $(RVDIR)/$(TARGET)gcc
@@ -8,9 +8,9 @@ OBJCOPY		= $(RVDIR)/$(TARGET)objcopy
 OBJDUMP		= $(RVDIR)/$(TARGET)objdump
 CFLAGS      = -Og
 
-CLANG		= clang-10
-LLVM_AS		= llvm-as-10
-LLC 		= llc-10
+CLANG		= clang-14
+LLVM_AS		= llvm-as-14
+LLC 		= llc-14
 QEMU		= qemu-riscv64
 
 TEST		= testcases
