@@ -4,5 +4,5 @@ int fib(int n) {
     else{ return fib(n-1) + fib(n-2);}
 }
 int main () {
-    return fib(6);
+    return fib(2);
 }

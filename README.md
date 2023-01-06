@@ -74,6 +74,17 @@ We suppply some test examples under testcases directory
 - [x] Global Variables
 - [ ] Array
 
+## Stack Address 
+```
+----------------------
+ Caller Saved
+----------------------
+ Function Call Context
+---------------------- <- sp = fp
+ Params
+----------------------
+```
+
 ## TODO
 - [ ] register allocation
 - [ ] many parameters function call

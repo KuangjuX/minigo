@@ -5,7 +5,7 @@ use std::cell::{ RefCell, UnsafeCell };
 use std::fmt::{Write, self};
 use bit_field::BitField;
 use llvm_ir::{ Instruction, terminator::Terminator };
-use crate::ir::{RegVar, VirtualReg};
+use crate::ir::{RegVar, VirtualReg, StackVar};
 
 use super::error::Error;
 use super::func::Label;
@@ -167,12 +167,7 @@ impl Program {
         Ok(())
     }
 
-    // 计算函数中变量所需要的栈空间
-    // fn assign_lvar_offsets(&self, inner: &mut ProgInner, func: &Function) {
-    //     for block in func.blocks {
 
-    //     }
-    // }
 
 }
 
@@ -193,6 +188,8 @@ impl CodeGen for Program {
             let name = format!("{}:", func.name);
             self.write_asm(name);
 
+            // 首先先将参数取出并建立变量
+
             // push all arguments into stack
             /*
             * Stack:
@@ -206,30 +203,34 @@ impl CodeGen for Program {
             *       exprs
             * ----------------------
             */
-            self.write_asm("    # Store ra register");
-            // sp = sp - 16
-            self.write_asm("    addi sp, sp, -16");
-            self.write_asm("    sd ra, 8(sp)");
+            self.write_asm("\t# Store ra register");
+            if func.params.len() == 0{
+                // sp = sp - 16
+                self.write_asm("\taddi sp, sp, -16");
+            }
+            self.write_asm("\tsd ra, 8(sp)");
 
             // store fp register
-            self.write_asm("    # Store fp register");
-            self.write_asm("    sd fp, 0(sp)");
+            self.write_asm("\t# Store fp register");
+            self.write_asm("\tsd fp, 0(sp)");
 
-            // write fp to sp
+            // write sp to fp
             self.write_asm("\t# write sp to fp");
             self.write_asm("\tmv fp, sp");
 
+            let stack_size = func.params.len() * 8 + 8;
+            // 修改栈深度
+            func.push_var(stack_size);
             for (index ,param) in func.params.iter().enumerate() {
-                // TODO: 如果参数内容超过 7 个的话，需要创建栈变量
                 match param.ty {
                     Ty::Num => {
-                        // 存在参数的话，创建变量
+                        // 存在参数的话，创建栈变量
                         let mut param_var = param.clone();
                         param_var.local_val = Some(
-                            VirtualReg::Reg(
-                                RegVar{
-                                    id: index, 
-                                    name: format!("a{}", index)
+                            VirtualReg::Stack(
+                                StackVar{
+                                    addr: index * 8 + 8,
+                                    size: 8
                                 }
                             )
                         );
@@ -239,7 +240,7 @@ impl CodeGen for Program {
                 }
             }
 
-            self.write_asm("    # generate expr");
+            self.write_asm("\t# generate expr");
             let inner = unsafe{ &mut *self.inner.get() };
             self.gen_label(func);
             if let Err(err) = self.gen_expr(inner, func) {

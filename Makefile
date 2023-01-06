@@ -90,7 +90,6 @@ llc:
 # 		tmux -2 attach-session -d
 
 clean:
-	@cargo clean 
 	@rm *.s *.ll *.bc *.S *.o *.exe minigo || true
 	@make -C testcases
 

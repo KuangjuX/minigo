@@ -239,96 +239,67 @@ impl Program {
     }
 
     /// 函数调用时对参数的处理
+    /// NOTE: 这里不需要修改栈顶指针，因为参数是作为调用函数的栈的一部分，也就不需要恢复
+    /// 但此时需要预先修改被调用函数的栈深度
     fn store_params(&self, prog_inner: &mut ProgInner, func: &Function, inst: &Call) -> Result<()> {
-        let mut index = 0;
-        let args_num = inst.arguments.len();
-        if args_num <= 7 {
-            // 参数个数小于 7 时，将参数存在寄存器中
-            for (arg, _) in inst.arguments.iter() {
-                if let Some(op) = parse_operand(arg) {
-                    match op {
-                        Op::LocalValue(name) => {
-                            let var = func.find_local_var(name).ok_or(Error::new("Failed to find local var"))?;
-                            match var {
-                                VirtualReg::Stack(stack_var) => {
-                                    // 当参数为栈变量时, 分配帮助寄存器
-                                    let help_reg = stack_var.load_stack_var_1(self, prog_inner);
-                                    let asm = format!("\t mv a{}, {}", index, help_reg.name);
-                                    self.write_asm(asm);
-                                },
-                                VirtualReg::Reg(reg_var) => {
-                                    let asm = format!("\tmv a{}, {}", index, reg_var.name);
-                                    self.write_asm(asm);
-                                }
+        let mut index = 8;
+        // 将所有参数全部放在栈里
+
+        self.write_asm("\t# Store Params");
+        // 预先为 ra 和 fp 预留位置
+        self.write_asm("\taddi sp, sp, -16");
+        
+        for (arg, _) in inst.arguments.iter() {
+            if let Some(op) = parse_operand(arg) {
+                match op {
+                    Op::LocalValue(name) => {
+                        let var = func.find_local_var(name).ok_or(Error::new("Failed to find local var"))?;
+                        match var {
+                            VirtualReg::Stack(stack_var) => {
+                                // 当参数为栈变量时, 分配帮助寄存器
+                                let help_reg = stack_var.load_stack_var_1(self, prog_inner);
+                                let asm = format!("\tsd {}, - {}(sp)", help_reg.name, index);
+                                self.write_asm(asm);
+                            },
+                            VirtualReg::Reg(reg_var) => {
+                                let asm = format!("\tsd {}, -{}(sp)", reg_var.name, index);
+                                self.write_asm(asm);
                             }
-                        },
-                        Op::ConstValue(val) => {
-                            match val {
-                                ConstValue::Num(num,  _) => {
-                                    let asm = format!("\taddi a{}, zero, {}", index, num);
-                                    self.write_asm(asm);
-                                },
-                                _ => { todo!() }
-                            }
-                            
+                        }
+                        index += 8;
+                    },
+                    Op::ConstValue(val) => {
+                        // 目前只考虑参数是数字的情况
+                        match val {
+                            // 向下存储
+                            ConstValue::Num(num,_) => {
+                                let help_reg = prog_inner.get_help_reg_1();
+                                let asm = format!(" \
+                                \taddi {}, zero, {}\n \
+                                \tsd {}, -{}(sp)
+                                ",
+                                help_reg.name, num,
+                                help_reg.name, index
+                            );
+                                self.write_asm(asm);
+                                index += 8;
+                            },
+                            _ => { todo!() }
                         }
                     }
                 }
-                index += 1;
-            }
-        }else{
-            // 将所有参数全部放在栈里
-            // 扩展栈空间
-            let size = 8 * args_num as isize;
-            let asm = format!("addi sp, sp, -{}", size);
-            self.write_asm(asm);
-            // func.add_stack_size(size);
-            for (arg, _) in inst.arguments.iter() {
-                if let Some(op) = parse_operand(arg) {
-                    match op {
-                        Op::LocalValue(name) => {
-                            let var = func.find_local_var(name).ok_or(Error::new("Failed to find local var"))?;
-                            match var {
-                                VirtualReg::Stack(stack_var) => {
-                                    // 当参数为栈变量时, 分配帮助寄存器
-                                    let help_reg = stack_var.load_stack_var_1(self, prog_inner);
-                                    let asm = format!("\tsd {}, {}(sp)", help_reg.name, index);
-                                    self.write_asm(asm);
-                                },
-                                VirtualReg::Reg(reg_var) => {
-                                    let asm = format!("\tsd {}, {}(sp)", reg_var.name, index);
-                                    self.write_asm(asm);
-                                }
-                            }
-                        },
-                        Op::ConstValue(val) => {
-                            // 目前只考虑参数是数字的情况
-                            match val {
-                                ConstValue::Num(num,_) => {
-                                    let asm = format!("sd {}, {}(sp)", num, index * 8);
-                                    self.write_asm(asm);
-                                },
-                                _ => { todo!() }
-                            }
-                            
-                        }
-                    }
-                }
-                index += 8;
             }
         }
         Ok(())
     }
 
-    /// 如果参数大于 7 个，恢复栈
-    fn restore_params(&self, inst: &Call) {
-        let args_num = inst.arguments.len();
-        if args_num > 7 {
-            let size = args_num * 7;
-            let asm = format!("\taddi sp, sp, {}", size);
-            self.write_asm(asm);
-        }
-    }
+    /// 恢复参数栈
+    // fn restore_params(&self, inst: &Call) {
+    //     let args_num = inst.arguments.len();
+    //     let size = args_num * 7;
+    //     let asm = format!("\taddi sp, sp, {}", size);
+    //     self.write_asm(asm);
+    // }
 
     pub(crate) fn handle_alloca(&self, prog_inner: &mut ProgInner, func: &Function, inst: &Alloca) -> Result<()> {
         let num_elements = &inst.num_elements;
@@ -674,25 +645,21 @@ impl Program {
         Err(Error::ParseErr{ err: format!("Fail to found parse {:?}", condvar)})
     }
 
+
+    
     /// 处理函数调用
     pub(crate) fn handle_call(&self, prog_inner: &mut ProgInner, func: &Function, inst: &Call) -> Result<()> {
-        // STEP1: 将参数放在 a0 - a7 寄存器中，如果还有其他参数，则以从右向左的顺序压栈
-        // 第 9 个参数在栈顶位置
-        self.store_params(prog_inner, func, inst)?;
-        
-        // 获取参数上下文
-        let param_ctx = func.get_param_context();
-        // 保存参数上下文
-        func.store_context(self, &param_ctx);
 
         let dest = inst.dest.clone().ok_or(Error::new("[Call] Fail to get target register"))?;
         // 分配物理寄存器
         let dest_reg_var = VirtualReg::try_allocate_virt_reg_var(prog_inner, func, dest.clone()).ok_or(Error::new("Fail to allocate reg var"))?;
         let func_op = inst.function.clone().right().unwrap();
-        // STEP2: 保存上下文
+        // STEP1: 保存上下文
         // 获取上下文
         let ctx = func.get_reg_context();
         func.store_context(self, &ctx);
+        // STEP2: 保存参数
+        self.store_params(prog_inner, func, inst)?;
         // STEP3: 调用 call 指令，执行函数
         if let Some(func) = parse_operand(&func_op) {
             match func {
@@ -719,16 +686,16 @@ impl Program {
         }else{
             return Err(Error::ParseErr{ err: format!("[Call] Fail to parse function {:?}", func_op)})
         }
-        // STEP4: 恢复上下文
+        // // STEP4： 恢复参数设置
+        // self.restore_params(inst);
+        // STEP5: 恢复上下文
         func.restore_context(self, &ctx);
-        // STEP5： 恢复参数设置
-        self.restore_params(inst);
         // STEP6: 获取函数返回值
         let asm = format!("\tmv {}, a0", dest_reg_var.name);
         self.write_asm(asm);
 
         // STEP7: 恢复参数上下文
-        func.restore_context(self, &param_ctx);
+        // func.restore_context(self, &param_ctx);
 
         Ok(())
     }

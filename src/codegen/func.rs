@@ -111,28 +111,11 @@ impl Function {
         Context { regs, stack_size }
     }
 
-    /// 获取函数切换时的上下文
-    pub fn get_param_context(&self) -> Context {
-        let mut stack_size = 0;
-        let mut regs = Vec::new();
-        let inner = self.inner.borrow();
-        for local_var in inner.param_vars.iter() {
-            if let Some(var) = local_var.name.clone() {
-                let virt_reg = self.find_local_var(var).unwrap();
-                match virt_reg {
-                    VirtualReg::Reg(reg) => { 
-                        stack_size += 8;
-                        regs.push(reg.clone());
-                    }
-                    _ => {}
-                }
-            }
-        }
-        Context { regs, stack_size }
-    }
+
 
     /// 保存上下文
     pub fn store_context(&self, prog: &Program, ctx: &Context) {
+        prog.write_asm("\t# Store Context;");
         let mut index = 0;
         let asm = format!("\taddi sp, sp, -{}", ctx.stack_size);
         prog.write_asm(asm);
@@ -145,6 +128,7 @@ impl Function {
 
     /// 恢复上下文
     pub fn restore_context(&self, prog: &Program, ctx: &Context) {
+        prog.write_asm("\t# Restore Context");
         let mut index = 0;
         for reg in ctx.regs.iter() {
             let asm = format!("\tld {}, {}(sp)", reg.name, index);

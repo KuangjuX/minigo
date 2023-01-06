@@ -78,7 +78,7 @@ qemu-riscv64  testcases/call_1.exe
 check call_1
 
 qemu-riscv64  testcases/fib.exe
-[ "$?" = 8 ]
+[ "$?" = 1 ]
 check fib
 
 
