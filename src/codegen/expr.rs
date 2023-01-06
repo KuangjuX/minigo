@@ -619,12 +619,21 @@ impl Program {
                 _ => { return Err(Error::new("Fail to parse operand")) }
             }
         }
-        self.write_asm("    # function return");
-        self.write_asm("    mv sp, fp");
-        self.write_asm("    ld fp, 0(sp)");
-        self.write_asm("    ld ra, 8(sp)");
-        self.write_asm("    addi sp, sp, 16");
-        self.write_asm("    ret\n\n");
+        let asm = " \
+        \t# function return \n \
+        \tmv sp, fp\n \
+        \tld fp, 0(sp)\n \
+        \tld ra, 8(sp)\n \
+        \taddi sp, sp, 16\n \
+        \tret\n\n \
+        ";
+        // self.write_asm("    # function return");
+        // self.write_asm("    mv sp, fp");
+        // self.write_asm("    ld fp, 0(sp)");
+        // self.write_asm("    ld ra, 8(sp)");
+        // self.write_asm("    addi sp, sp, 16");
+        // self.write_asm("    ret\n\n");
+        self.write_asm(asm);
         Ok(())
     }
 
@@ -670,13 +679,20 @@ impl Program {
         // STEP1: 将参数放在 a0 - a7 寄存器中，如果还有其他参数，则以从右向左的顺序压栈
         // 第 9 个参数在栈顶位置
         self.store_params(prog_inner, func, inst)?;
+        
+        // 获取参数上下文
+        let param_ctx = func.get_param_context();
+        // 保存参数上下文
+        func.store_context(self, &param_ctx);
 
         let dest = inst.dest.clone().ok_or(Error::new("[Call] Fail to get target register"))?;
         // 分配物理寄存器
         let dest_reg_var = VirtualReg::try_allocate_virt_reg_var(prog_inner, func, dest.clone()).ok_or(Error::new("Fail to allocate reg var"))?;
         let func_op = inst.function.clone().right().unwrap();
         // STEP2: 保存上下文
-        func.store_regs(self);
+        // 获取上下文
+        let ctx = func.get_reg_context();
+        func.store_context(self, &ctx);
         // STEP3: 调用 call 指令，执行函数
         if let Some(func) = parse_operand(&func_op) {
             match func {
@@ -704,12 +720,16 @@ impl Program {
             return Err(Error::ParseErr{ err: format!("[Call] Fail to parse function {:?}", func_op)})
         }
         // STEP4: 恢复上下文
-        func.restore_regs(self);
+        func.restore_context(self, &ctx);
         // STEP5： 恢复参数设置
         self.restore_params(inst);
         // STEP6: 获取函数返回值
         let asm = format!("\tmv {}, a0", dest_reg_var.name);
         self.write_asm(asm);
+
+        // STEP7: 恢复参数上下文
+        func.restore_context(self, &param_ctx);
+
         Ok(())
     }
 }

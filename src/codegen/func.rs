@@ -1,7 +1,7 @@
 use llvm_ir::{BasicBlock, name::Name};
 use std::{collections::VecDeque, cell::RefCell};
 
-use crate::ir::{VirtualReg};
+use crate::ir::{VirtualReg, RegVar};
 
 use super::{Ty, Var, Program};
 
@@ -38,6 +38,12 @@ pub struct FuncInner {
     pub(crate) param_vars: Vec<Var>,
     /// Label
     pub(crate) labels: Vec<Label>
+}
+
+/// 函数切换上下文
+pub struct Context {
+    regs: Vec<RegVar>,
+    stack_size: usize
 }
 
 impl Function {
@@ -77,7 +83,7 @@ impl Function {
             if let Some(var) = local_var.name.clone() {
                 let virt_reg = self.find_local_var(var).unwrap();
                 match virt_reg {
-                    VirtualReg::Reg(reg) => { num += 1}
+                    VirtualReg::Reg(reg) => { num += 1 }
                     _ => {}
                 }
             }
@@ -85,53 +91,70 @@ impl Function {
         num
     }
 
-    /// 保存寄存器上下文
-    pub fn store_regs(&self, prog: &Program) {
-        let mut index = 0;
-        let reg_nums = self.get_reg_nums();
-        let stack_size = 8 * reg_nums;
-        let asm = format!("\taddi sp, sp, -{}", stack_size);
-        prog.write_asm(asm);
-        // 对使用过的寄存器进行保存
+    /// 获取函数切换时的上下文
+    pub fn get_reg_context(&self) -> Context {
+        let mut stack_size = 0;
+        let mut regs = Vec::new();
         let inner = self.inner.borrow();
-        for var in inner.locals.iter() {
-            if let Some(name) = &var.name {
-                let virt_reg = self.find_local_var(name.clone()).unwrap();
+        for local_var in inner.locals.iter() {
+            if let Some(var) = local_var.name.clone() {
+                let virt_reg = self.find_local_var(var).unwrap();
                 match virt_reg {
-                    VirtualReg::Reg(reg_var) => {
-                        let asm = format!("\tsd {}, {}(sp)", reg_var.name, index);
-                        prog.write_asm(asm);
-                        index += 8;
-                    },
+                    VirtualReg::Reg(reg) => { 
+                        stack_size += 8;
+                        regs.push(reg.clone());
+                    }
                     _ => {}
                 }
             }
+        }
+        Context { regs, stack_size }
+    }
+
+    /// 获取函数切换时的上下文
+    pub fn get_param_context(&self) -> Context {
+        let mut stack_size = 0;
+        let mut regs = Vec::new();
+        let inner = self.inner.borrow();
+        for local_var in inner.param_vars.iter() {
+            if let Some(var) = local_var.name.clone() {
+                let virt_reg = self.find_local_var(var).unwrap();
+                match virt_reg {
+                    VirtualReg::Reg(reg) => { 
+                        stack_size += 8;
+                        regs.push(reg.clone());
+                    }
+                    _ => {}
+                }
+            }
+        }
+        Context { regs, stack_size }
+    }
+
+    /// 保存上下文
+    pub fn store_context(&self, prog: &Program, ctx: &Context) {
+        let mut index = 0;
+        let asm = format!("\taddi sp, sp, -{}", ctx.stack_size);
+        prog.write_asm(asm);
+        for reg in ctx.regs.iter() {
+            let asm = format!("\tsd {}, {}(sp)", reg.name, index);
+            prog.write_asm(asm);
+            index += 8;
         }
     }
 
-    /// 恢复寄存器上下文
-    pub fn restore_regs(&self, prog: &Program) {
+    /// 恢复上下文
+    pub fn restore_context(&self, prog: &Program, ctx: &Context) {
         let mut index = 0;
-        let reg_nums = self.get_reg_nums();
-        let stack_size = 8 * reg_nums;
-        // 对使用过的寄存器进行保存
-        let inner = self.inner.borrow();
-        for var in inner.locals.iter() {
-            if let Some(name) = &var.name {
-                let virt_reg = self.find_local_var(name.clone()).unwrap();
-                match virt_reg {
-                    VirtualReg::Reg(reg_var) => {
-                        let asm = format!("\tld {}, {}(sp)", reg_var.name, index);
-                        prog.write_asm(asm);
-                        index += 8;
-                    },
-                    _ => {}
-                }
-            }
+        for reg in ctx.regs.iter() {
+            let asm = format!("\tld {}, {}(sp)", reg.name, index);
+            prog.write_asm(asm);
+            index += 8;
         }
-        let asm = format!("\taddi sp, sp, {}", stack_size);
+        let asm = format!("\taddi sp, sp, {}", ctx.stack_size);
         prog.write_asm(asm);
     }
+
 
     /// 找到对应的局部变量
     pub fn find_local_var(&self, name: Name) -> Option<VirtualReg> {
