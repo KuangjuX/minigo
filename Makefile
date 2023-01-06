@@ -14,7 +14,7 @@ LLC 		= llc-14
 QEMU		= qemu-riscv64
 
 TEST		= testcases
-PROG 		?= add_many_regs
+PROG 		?= fib
 TESTELF		= $(TEST)/$(PROG)
 TESTASM     = $(TESTELF).S
 TESTPROG	= $(TESTELF).c

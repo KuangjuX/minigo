@@ -65,9 +65,7 @@ pub fn run_linker(input: &str, output: &str) {
                 .arg(format!("{}/crtbegin.o", lib_path))
                 .arg(format!("-L/{}", lib_path));
         },
-        _ => {
-
-        }
+        _ => {}
     }
 }
 

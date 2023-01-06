@@ -38,6 +38,10 @@ impl ProgInner {
         self.regs.get_help_physical_reg_2()
     }
 
+    pub(crate) fn get_help_reg_3(&self) -> PhysicalReg {
+        self.regs.get_help_physical_reg_3()
+    }
+
 }
 
 #[derive(Debug, Clone)]
@@ -118,6 +122,14 @@ impl PhysicalRegs {
             allocated: false,
             index: 1,
             name:String::from("t1")
+        }
+    }
+
+    pub(crate) fn get_help_physical_reg_3(&self) -> PhysicalReg {
+        PhysicalReg {
+            allocated: false,
+            index: 1,
+            name:String::from("t2")
         }
     }
 

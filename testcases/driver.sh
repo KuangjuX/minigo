@@ -44,6 +44,22 @@ qemu-riscv64  testcases/equal.exe
 [ "$?" = 1 ]
 check equal
 
+qemu-riscv64  testcases/slt.exe
+[ "$?" = 1 ]
+check slt
+
+qemu-riscv64  testcases/glt.exe
+[ "$?" = 1 ]
+check glt
+
+qemu-riscv64  testcases/sle.exe
+[ "$?" = 1 ]
+check sle
+
+qemu-riscv64  testcases/gle.exe
+[ "$?" = 1 ]
+check gle
+
 qemu-riscv64  testcases/if.exe
 [ "$?" = 1 ]
 check if
@@ -62,7 +78,7 @@ qemu-riscv64  testcases/call_1.exe
 check call_1
 
 qemu-riscv64  testcases/fib.exe
-[ "$?" = 5 ]
+[ "$?" = 8 ]
 check fib
 
 

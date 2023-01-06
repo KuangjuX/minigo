@@ -9,40 +9,116 @@ use crate::ir::{VirtualReg,  RegVar};
 
 impl Program {
     /// 处理谓词逻辑
-    fn handle_predicate<S: Display, U: Display, V: Display>(&self, predicate: &IntPredicate, prog_inner: &mut ProgInner, op0: S, op1: U, dest: V) {
+    fn handle_predicate<S: Display, U: Display, V: Display>(&self, predicate: &IntPredicate, prog_inner: &mut ProgInner, op0: S, op1: U, dest: V, inst_type: InstType) {
         match predicate {
             IntPredicate::EQ => {
+                // 等于
                 let help_reg = prog_inner.get_help_reg_1();
-                let asm = format!("\txor {}, {}, {}", help_reg.name, op0, op1);
-                self.write_asm(asm);
+                match inst_type {
+                    InstType::I => {
+                        let asm = format!("\txori {}, {}, {}", help_reg.name, op0, op1);
+                        self.write_asm(asm);
+                    }
+                    InstType::R => {
+                        let asm = format!("\txor {}, {}, {}", help_reg.name, op0, op1);
+                        self.write_asm(asm);
+                    }
+                }
                 let asm = format!("\tseqz {}, {}", dest, help_reg.name);
                 self.write_asm(asm);
             },
             IntPredicate::NE => {
+                // 不等于
                 let help_reg = prog_inner.get_help_reg_1();
-                let asm = format!("\txor {}, {}, {}", help_reg.name, op0, op1);
-                self.write_asm(asm);
+                match inst_type {
+                    InstType::I => {
+                        let asm = format!("\txori {}, {}, {}", help_reg.name, op0, op1);
+                        self.write_asm(asm);
+                    }
+                    InstType::R => {
+                        let asm = format!("\txor {}, {}, {}", help_reg.name, op0, op1);
+                        self.write_asm(asm);
+                    }
+                }
                 let asm = format!("\tsnez {}, {}", dest, help_reg.name);
                 self.write_asm(asm);
             },
             IntPredicate::SGT => {
-                let asm = format!("\tslt {}, {}, {}", dest, op1, op0);
-                self.write_asm(asm);
+                // 大于
+                match inst_type {
+                    InstType::I => {
+                        let asm = format!("\tslti {}, {}, {}", dest, op0, op1);
+                        self.write_asm(asm);
+                        let asm = format!("\tnot {}, {}", dest, dest);
+                        self.write_asm(asm);
+                    }
+                    InstType::R => {
+                        let asm = format!("\tslt {}, {}, {}", dest, op0, op1);
+                        self.write_asm(asm);
+                        let asm = format!("\tnot {}, {}", dest, dest);
+                        self.write_asm(asm);
+                    }
+                }
             },
             IntPredicate::SGE => {
-                let asm = format!("\tslt {}, {}, {}", dest, op1, op0);
+                // 大于等于
+                // 由于前两个帮助寄存器可能用到，所以申请第三个帮助寄存器
+                let help_reg_3 = prog_inner.get_help_reg_3();
+                match inst_type {
+                    InstType::I => {
+                        let asm = format!("\tslti {}, {}, {}", dest, op0, op1);
+                        self.write_asm(asm);
+                        let asm = format!("\tnot {}, {}", dest, dest);
+                        self.write_asm(asm);
+                        let asm = format!("\txori {}, {}, {}", help_reg_3.name, op0, op1);
+                        self.write_asm(asm);
+                    }
+                    InstType::R => {
+                        let asm = format!("\tslt {}, {}, {}", dest, op0, op1);
+                        self.write_asm(asm);
+                        let asm = format!("\tnot {}, {}", dest, dest);
+                        self.write_asm(asm);
+                        let asm = format!("\txor {}, {}, {}", help_reg_3.name, op0, op1);
+                        self.write_asm(asm);
+                    }
+                }
+                let asm = format!("\tseqz {}, {}", help_reg_3.name, help_reg_3.name);
                 self.write_asm(asm);
-                let asm = format!("\txori {}, {}, 1", dest, dest);
+                let asm = format!("\tor {}, {}, {}", dest, help_reg_3.name, dest);
                 self.write_asm(asm);
             },
             IntPredicate::SLT => {
-                let asm = format!("\tslt {}, {}, {}",dest, op0, op1);
-                self.write_asm(asm);
+                match inst_type {
+                    InstType::I => {
+                        let asm = format!("\tslti {}, {}, {}",dest, op0, op1);
+                        self.write_asm(asm);
+                    }
+                    InstType::R => {
+                        let asm = format!("\tslt {}, {}, {}",dest, op0, op1);
+                        self.write_asm(asm);
+                    }
+                }
             },
             IntPredicate::SLE => {
-                let asm = format!("\tslt {}, {}, {}", dest, op0, op1);
+                // 小于等于
+                let help_reg_3 = prog_inner.get_help_reg_3();
+                match inst_type {
+                    InstType::I => {
+                        let asm = format!("\tslti {}, {}, {}", dest, op0, op1);
+                        self.write_asm(asm);
+                        let asm = format!("\txori {}, {}, {}", help_reg_3.name, op0, op1);
+                        self.write_asm(asm);
+                    }
+                    InstType::R => {
+                        let asm = format!("\tslt {}, {}, {}", dest, op0, op1);
+                        self.write_asm(asm);
+                        let asm = format!("\txor {}, {}, {}", help_reg_3.name, op0, op1);
+                        self.write_asm(asm);
+                    }
+                }
+                let asm = format!("\tseqz {}, {}", help_reg_3.name, help_reg_3.name);
                 self.write_asm(asm);
-                let asm = format!("\txori {}, {}, 1", dest, dest);
+                let asm = format!("\tor {}, {}, {}", dest, help_reg_3.name, dest);
                 self.write_asm(asm);
             }
             _ => { todo!() }
@@ -62,10 +138,10 @@ impl Program {
                                 // 为 stack1 和 stack2 分配两个帮助寄存器
                                 let help_reg_1 = stack_var_1.load_stack_var_1(self, prog_inner);
                                 let help_reg_2 = stack_var_2.load_stack_var_2(self, prog_inner);
-                                self.handle_predicate(predicate, prog_inner, help_reg_1.name, help_reg_2.name, dest_reg_var.name);
+                                self.handle_predicate(predicate, prog_inner, help_reg_1.name, help_reg_2.name, dest_reg_var.name, InstType::R);
                             },
                             (VirtualReg::Reg(reg1), VirtualReg::Reg(reg2)) => {
-                                self.handle_predicate(predicate, prog_inner, reg1.name, reg2.name, dest_reg_var.name);
+                                self.handle_predicate(predicate, prog_inner, reg1.name, reg2.name, dest_reg_var.name, InstType::R);
                             },
                             _ => { todo!() }
                         }
@@ -77,11 +153,11 @@ impl Program {
                             ConstValue::Num(num, _) => {
                                 match var {
                                     VirtualReg::Reg(reg) => {
-                                        self.handle_predicate(predicate, prog_inner, reg.name, num, dest_reg_var.name);
+                                        self.handle_predicate(predicate, prog_inner, reg.name, num, dest_reg_var.name, InstType::I);
                                     },
                                     VirtualReg::Stack(stack) => {
                                         let help_reg_1 = stack.load_stack_var_1(self, prog_inner);
-                                        self.handle_predicate(predicate, prog_inner,help_reg_1.name, num, dest_reg_var.name);
+                                        self.handle_predicate(predicate, prog_inner,help_reg_1.name, num, dest_reg_var.name, InstType::I);
                                     }
                                 }
                             },
