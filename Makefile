@@ -27,6 +27,10 @@ ELFS 		= $(TEST)/test $(TEST)hello_world
 
 TEST_LL		= test.ll
 
+FRONT_SRC   ?= test/test.go
+FRONT_LLIR	?= frontend/test/test.go.ll
+FRONT_LL    ?= frontend/test/test.go
+
 
 $(minigo): minigo
 
@@ -111,6 +115,13 @@ testcases/%.exe: testcases/%.bc
 
 test: $(TESTS)
 	testcases/driver.sh ./minigo
+
+$(FRONT_LLIR):
+	cd frontend && pytyon3 main.py $(FRONT_SRC)
+
+run: $(FRONT_LLIR) minigo
+	make gen_bc PROG=$(FRONT_LL)
+	./minigo $(FRONT_LL)
 
 
 
